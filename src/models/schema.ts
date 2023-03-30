@@ -1,5 +1,19 @@
 import { Schema, model } from "mongoose";
-import { IOrder } from "../types/interface";
+
+
+interface IOrder {
+    path: any,
+    amountIn: any,
+    indexToken: string,
+    minOut: any,
+    sizeDelta: any,
+    collateralDelta: any,
+    acceptablePrice: any,
+    executionFee: any,
+    callbackTarget: any,
+    isLong: boolean,
+    referralCode: string
+}
 
 const OrderSchema = new Schema<IOrder>(
     {
