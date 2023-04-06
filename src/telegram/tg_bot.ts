@@ -40,7 +40,7 @@ const leverageMenu = Telegraf.Extra
 bot.start((ctx:any) => {
     console.log("New user has joined the bot")
     state[ctx.from!.id] = {};
-ctx.reply( `🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex on easy to use way \n  🕒 Time: ${date}`)
+ctx.reply( `🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex platform on easy to use way \n  🕒 Time: ${date}`)
 ctx.reply('Please select a token:', tokenMenu)
 })
 
