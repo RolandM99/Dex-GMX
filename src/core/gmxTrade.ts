@@ -1,10 +1,11 @@
-import { sendTelegramNote } from "../telegram/tg_bot";
+import { placeOrder } from "../telegram/tg_bot";
 
 export const gmxWrapperTrader = async () => {
 
     let message = `GMX Trading Started`;
+    let ctx;
 
-    sendTelegramNote(message);
+    placeOrder(ctx, message);
 }
 
 gmxWrapperTrader();

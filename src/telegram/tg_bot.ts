@@ -1,87 +1,107 @@
 const CallbackQuery  = require('node-telegram-bot-api')
-const { Telegraf } = require('telegraf')
-const TelegramBot = require('node-telegram-bot-api')
-const { InlineKeyboardButton, InlineKeyboardMarkup, InputTextMessageContent } = TelegramBot;
-// const { CallbackQuery } = TelegramBot.types;
-// const { CallbackQuery } = require('node-telegram-bot-api')
+const { Telegraf, Markup } = require('telegraf')
+
 require ('dotenv').config()
+
+interface UserState {
+  token?: string;
+  longShort?: 'long' | 'short';
+  leverage?: number;
+  amount?: number;
+}
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN)
 const date = new Date().toLocaleDateString();
 
+const tokens = ['USDC/ETH', 'USDC/BTC', 'USDC/LINK', 'USDC/UNI'];
+const leverages = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+
+const state: Record<number, UserState> = {};
+
+const tokenMenu = Telegraf.Extra
+  .markdown()
+  .markup((m:any) => m.inlineKeyboard(
+    tokens.map((token) => m.callbackButton(token, `select_token_${token}`))
+  ));
+
+  const longShortMenu = Telegraf.Extra
+  .markdown()
+  .markup((m:any) => m.inlineKeyboard([
+    m.callbackButton('Long', 'select_long'),
+    m.callbackButton('Short', 'select_short'),
+  ]));
+
+const leverageMenu = Telegraf.Extra
+  .markdown()
+  .markup((m:any) => m.inlineKeyboard(
+    leverages.map((leverage) => m.callbackButton(`${leverage}x`, `select_leverage_${leverage}`))
+  ));
+
 bot.start((ctx:any) => {
     console.log("New user has joined the bot")
-ctx.reply(`🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex on easy to use way \n\n 🕒 Time ${date}`)
+    state[ctx.from!.id] = {};
+ctx.reply( `🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex on easy to use way \n  🕒 Time: ${date}`)
+ctx.reply('Please select a token:', tokenMenu)
 })
 
-export const sendTelegramNote = async (message: any) => {
-    const chatIDs = ["1069843486", "1502424561"];
-    chatIDs.forEach(chat => {
-      bot.telegram.sendMessage(chat, message, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      }).catch((error: any) => {
-        console.log("Encouterd an error while sending notification to ", chat)
-        console.log(error)
-      })
-    });
-  };
+bot.action(/^select_token_(.*)$/, (ctx:any) => {
+  const token = ctx.match[1];
+  state[ctx.from!.id].token = token;
+  ctx.reply(`You selected ${token}. Long or short?`, longShortMenu);
+});
 
-bot.on('callback_query', (callbackQuery: CallbackQuery) => {
-  const chatId = callbackQuery.message.chat.id;
-  const messageId = callbackQuery.message.message_id;
+bot.action('select_long', (ctx:any) => {
+  state[ctx.from!.id].longShort = 'long';
+  ctx.reply('Please select leverage:', leverageMenu);
+});
 
-  if (callbackQuery.data === 'short_button') {
-    bot.answerCallbackQuery({ callback_query_id: callbackQuery.id, text: 'Your order has been shorted', cache_time: 0.5 });
-  } else if (callbackQuery.data === 'long_button') {
-    bot.answerCallbackQuery({ callback_query_id: callbackQuery.id, text: 'your order has been longed', cache_time: 5 });
-  } else {
-    const amount = parseInt(callbackQuery.message.reply_markup.input_field_value.message_text);
-    const value = parseInt(callbackQuery.data);
-    const result = amount * value / 10;
-    const text = `Amount: ${amount}\nLeverage: ${value}\nResult: ${result}`;
-    bot.editMessageText({ chat_id: chatId, message_id: messageId, text: text });
+bot.action('select_short', (ctx:any) => {
+  state[ctx.from!.id].longShort = 'short';
+  ctx.reply('Please select leverage:', leverageMenu);
+});
+
+bot.action(/^select_leverage_(.*)$/, (ctx:any) => {
+  const leverage = parseInt(ctx.match[1], 10);
+  state[ctx.from!.id].leverage = leverage;
+  ctx.reply('Please enter the order amount:');
+});
+
+bot.on('text', (ctx:any) => {
+  const amount = parseFloat(ctx.message.text);
+  if (!isNaN(amount)) {
+    state[ctx.from!.id].amount = amount;
+    placeOrder(ctx, `Order placed for ${state[ctx.from!.id].longShort} ${state[ctx.from!.id].leverage}x ${amount} ${state[ctx.from!.id].token}.`);
   }
 });
 
-bot.on('message', (msg: { chat: { id: any; }; }) => {
-  const chatId = msg.chat.id;
-  const messageText = 'Enter amount:';
-  const amountPlaceholder = 'Enter amount...';
-
-  const slider = new InlineKeyboardMarkup({
-    inline_keyboard: [
-      [
-        new InlineKeyboardButton({ text: '0', switch_inline_query_current_chat: '0' }),
-        new InlineKeyboardButton({ text: '10', switch_inline_query_current_chat: '10' }),
-        new InlineKeyboardButton({ text: '20', switch_inline_query_current_chat: '20' }),
-        new InlineKeyboardButton({ text: '30', switch_inline_query_current_chat: '30' }),
-        new InlineKeyboardButton({ text: '40', switch_inline_query_current_chat: '40' }),
-        new InlineKeyboardButton({ text: '50', switch_inline_query_current_chat: '50' }),
-      ]
-    ],
-  });
-
-  const keyboard = new InlineKeyboardMarkup({
-    inline_keyboard: [
-      [
-        new InlineKeyboardButton({ text: 'Short', callback_data: 'short_button' }),
-        new InlineKeyboardButton({ text: 'Long', callback_data: 'long_button' }),
-      ],
-      [
-        new InlineKeyboardButton({ text: 'Cancel', callback_data: 'cancel' }),
-      ],
-    ],
-    input_field_placeholder: amountPlaceholder,
-    input_message_content: new InputTextMessageContent({ message_text: amountPlaceholder }),
-  });
-
-  bot.sendMessage({ chat_id: chatId, text: messageText, reply_markup: keyboard });
-  bot.sendMessage({ chat_id: chatId, text: 'Select leverage:', reply_markup: slider });
+bot.action('cancel_order', (ctx:any) => {
+  state[ctx.from!.id] = {};
+  ctx.reply('Order cancelled.');
 });
 
+bot.launch();
 
+export function placeOrder(ctx: any, message: any) {
+  const chatIDs = ["1069843486"];
+  chatIDs.forEach(chat => {
+    bot.telegram.sendMessage(chat, message, {
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    }).catch((error: any) => {
+      console.log("Encouterd an error while sending notification to ", chat)
+      console.log(error)
+    })
+  });
+  const { token, longShort, leverage, amount } = state[ctx?.from?.id ?? ''] || {};
+  if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
+    return;
+  }
+ 
+  else {
+    ctx.reply(`Placing order ${longShort} ${leverage}x ${amount} ${token}...`);
+  }
+  // TODO: implement the place order function here
+  console.log(`Placing order for ${longShort} ${leverage}x ${amount} ${token}...`);
+}
 
-bot.help((ctx:any) => ctx.reply('Send me a sticker'))
-bot.launch()
 
