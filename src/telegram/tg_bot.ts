@@ -11,18 +11,38 @@ interface UserState {
 }
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN)
-const date = new Date().toLocaleDateString();
 
 const tokens = ['USDC/ETH', 'USDC/BTC', 'USDC/LINK', 'USDC/UNI'];
 const leverages = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+const numRows = 2;
+const numCols = 2;
 
 const state: Record<number, UserState> = {};
 
 const tokenMenu = Telegraf.Extra
   .markdown()
-  .markup((m:any) => m.inlineKeyboard(
-    tokens.map((token) => m.callbackButton(token, `select_token_${token}`))
-  ));
+  .markup((m:any) => {
+    const keyboard = [];
+
+    for (let i = 0; i < tokens.length; i += numCols) {
+      const row = [];
+
+      for (let j = 0; j < numCols; j++) {
+        const tokenIndex = i + j;
+        if (tokenIndex >= tokens.length) {
+          break;
+        }
+
+        const token = tokens[tokenIndex];
+        row.push(m.callbackButton(token, `select_token_${token}`));
+      }
+
+      keyboard.push(row);
+    }
+
+    return m.inlineKeyboard(keyboard);
+  });
+
 
   const longShortMenu = Telegraf.Extra
   .markdown()
@@ -40,8 +60,7 @@ const leverageMenu = Telegraf.Extra
 bot.start((ctx:any) => {
     console.log("New user has joined the bot")
     state[ctx.from!.id] = {};
-ctx.reply( `🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex platform on easy to use way \n  🕒 Time: ${date}`)
-ctx.reply('Please select a token:', tokenMenu)
+ctx.reply('🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex platform on easy to use way  \n\n Please select a token:', tokenMenu )
 })
 
 bot.action(/^select_token_(.*)$/, (ctx:any) => {
