@@ -1,6 +1,7 @@
 const CallbackQuery  = require('node-telegram-bot-api')
 const { Telegraf, Markup } = require('telegraf')
-import Tokens from './data'
+import Tokens from './data';
+const axios = require('axios');
 
 require ('dotenv').config()
 
@@ -12,6 +13,12 @@ interface UserState {
 }
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN)
+
+const handleSelectedSymbol = (symbol: string) => {
+  const selectedToken: any = Tokens.find(token => token.symbol === symbol)
+  return selectedToken ? selectedToken.address : ""
+}
+
 
 const tokens = Tokens.map((token) => `USDC/${token.symbol}`);
 
