@@ -114,14 +114,14 @@ bot.on("text", (ctx: any) => {
   const amount = parseFloat(ctx.message.text);
   if (!isNaN(amount)) {
     state[ctx.from!.id].amount = amount;
-    placeOrder(
-      ctx,
-      `Order placed for ${state[ctx.from!.id].longShort} ${
-        state[ctx.from!.id].leverage
-      }x ${amount} ${state[ctx.from!.id].token}.`
-    );
+    const leverage = state[ctx.from!.id].leverage;
+    const token = state[ctx.from!.id].token;
+    const result = amount * leverage!;
+    const message = `Order placed for ${state[ctx.from!.id].longShort ? "Long" : "Short"} ${leverage}x ${amount} ${token}. Total: ${result} ${token}`;
+    placeOrder(ctx, message);
   }
 });
+
 
 bot.action("cancel_order", (ctx: any) => {
   state[ctx.from!.id] = {};
@@ -147,12 +147,17 @@ export function placeOrder(ctx: any, message: any) {
     state[ctx?.from?.id ?? ""] || {};
   if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
     return;
-  } else {
-    const orderAmount = amount * leverage; // multiply amount by leverage
-    ctx.reply(`Placing order ${longShort} ${leverage}x ${orderAmount} ${token}...`);
   }
-  // TODO: implement the place order function here
-  console.log(
-    `Placing order for ${longShort} ${leverage}x ${amount} ${token}...`
+
+  // Compute the order amount based on the selected leverage
+  const orderAmount = amount * leverage;
+
+  ctx.reply(
+    `Placing orders for ${token} token which is ${longShort ? "Long" : "Short"} ${leverage}x ${orderAmount} ${token}...`
   );
+  console.log(token, longShort, orderAmount,);
+  
+
+  // TODO: implement the place order function here
+  console.log(`Placing order for ${longShort} ${leverage}x ${orderAmount} ${token}...`);
 }
