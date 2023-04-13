@@ -1,13 +1,12 @@
-import { Order } from './../models/schema';
+import { Order } from "./../models/schema";
 const CallbackQuery = require("node-telegram-bot-api");
 const { Telegraf, Markup } = require("telegraf");
 import { constants, utils } from "ethers";
 import { config } from "../config/config";
 import { GmxWrapper } from "../core";
 import Tokens from "./data";
-import { connectDB } from '../config/db';
+import { connectDB } from "../config/db";
 connectDB();
-
 
 require("dotenv").config();
 
@@ -59,10 +58,16 @@ const longShortMenu = Telegraf.Extra.markdown().markup((m: any) =>
   ])
 );
 
-const placeOrderButton = Telegraf.Extra.markdown().markup((m: any) => 
-m.inlineKeyboard([
-  m.callbackButton("Place Order", "place_order"),
-]))
+const placeCancelOrderButtons = Telegraf.Extra.markdown().markup((m: any) =>
+  m.inlineKeyboard([
+    m.callbackButton("Place Order", "place_order"),
+    m.callbackButton("Cancel Order", "cancel_order")
+])
+);
+
+// const cancelOrder = Telegraf.Extra.markdown().markup((m: any) =>
+//   m.inlineKeyboard([m.callbackButton("Cancel Order", "cancel_order")])
+// );
 
 const leverageMenu = Telegraf.Extra.markdown().markup((m: any) =>
   m.inlineKeyboard(
@@ -94,16 +99,19 @@ bot.action(/^select_token_(.*)$/, async (ctx: any) => {
     const prices = await response.json();
 
     const tokenPrice = prices[address];
-    const tokenPriceInUsd = ((tokenPrice / 1e18) * Math.pow(10, -12)).toFixed(2);
+    const tokenPriceInUsd = ((tokenPrice / 1e18) * Math.pow(10, -12)).toFixed(
+      2
+    );
 
-      // Add token address and tokenPrice to state object
-        state[ctx.from!.id].token = address;
-        state[ctx.from!.id].acceptablePrice = tokenPriceInUsd;
-        state[ctx.from!.id].symbol = symbol;
+    // Add token address and tokenPrice to state object
+    state[ctx.from!.id].token = address;
+    state[ctx.from!.id].acceptablePrice = tokenPriceInUsd;
+    state[ctx.from!.id].symbol = symbol;
 
     console.log(tokenPriceInUsd, "$");
-    ctx.reply(`You selected ${symbol} and its current price on the market is: ${tokenPriceInUsd}$`);
-
+    ctx.reply(
+      `You selected ${symbol} and its current price on the market is: ${tokenPriceInUsd}$`
+    );
   } else {
     ctx.reply("Token not found");
   }
@@ -115,14 +123,14 @@ bot.action("select_long", (ctx: any) => {
   state[ctx.from!.id].longShort = true;
   ctx.reply("You selected long");
   console.log("Long selected");
-  
+
   ctx.reply("Please select leverage:", leverageMenu);
 });
 
 bot.action("select_short", (ctx: any) => {
   state[ctx.from!.id].longShort = false;
   console.log("Short selected");
-  
+
   ctx.reply("You selected short");
   ctx.reply("Please select leverage:", leverageMenu);
 });
@@ -131,7 +139,7 @@ bot.action(/^select_leverage_(.*)$/, (ctx: any) => {
   const leverage = parseInt(ctx.match[1], 10);
   state[ctx.from!.id].leverage = leverage;
   console.log("your leverage is :", leverage);
-  
+
   ctx.reply("Please enter the order amount:");
 });
 
@@ -140,50 +148,52 @@ bot.on("text", (ctx: any) => {
   if (!isNaN(amount)) {
     state[ctx.from!.id].amount = amount;
     const leverage = state[ctx.from!.id].leverage;
-     const tokenAddress = state[ctx.from!.id].token;
-     
+    const tokenSymbol = state[ctx.from.id].symbol;
 
     const sizeDelta = amount * leverage!;
     console.log(`The result for a amount: ${amount} and Result: ${sizeDelta}}`);
 
-  
-    
-    const message = `Order placed for ${state[ctx.from!.id].longShort ? "Long" : "Short"} ${leverage}x ${amount} Token ${tokenAddress}. Total: ${sizeDelta}`;
-    // placeOrder(ctx, message);
+    const message = `Please confirm your order for ${
+      state[ctx.from!.id].longShort ? "Long" : "Short"
+    } \n ${leverage} x ${amount} \n, the token is ${tokenSymbol} and the Total amount is : ${sizeDelta}`;
 
-    ctx.reply(message, placeOrderButton)
+    ctx.reply(message, placeCancelOrderButtons);
   }
 });
 
-
+bot.action("cancel_order", (ctx: any) => {
+  // state[ctx.from!.id] = {};
+  ctx.reply("Order cancelled.");
+  ctx.reply(
+    "🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex platform on easy to use way  \n\n Please select a token:",
+    tokenMenu
+  );
+});
 
 bot.action("place_order", (ctx: any) => {
   const amount = state[ctx.from.id].amount;
   const leverage = state[ctx.from.id].leverage!;
-  const tokenAddress = state[ctx.from.id].token;
+  const tokenSymbol = state[ctx.from.id].symbol;
 
-  if (typeof amount === 'undefined') {
-    ctx.reply('Please enter an amount before placing an order');
+  if (typeof amount === "undefined") {
+    ctx.reply("Please enter an amount before placing an order");
     return;
   }
   const sizeDelta = amount * leverage;
-  const message = `Please confirm your order for for ${state[ctx.from!.id].longShort ? "Long" : "Short"} \n ${leverage} x ${amount} \n Token ${tokenAddress}. Total: ${sizeDelta}`;
-  
+  const message = `Order placed for ${
+    state[ctx.from!.id].longShort ? "Long" : "Short"
+  } ${leverage}x ${amount}  the token is ${tokenSymbol} and the total amount is: ${sizeDelta}`;
+
   console.log(`The result for amount: ${amount} and Result: ${sizeDelta}`);
 
   placeOrder(ctx, message);
 
   ctx.reply(message);
-})
-
-bot.action("cancel_order", (ctx: any) => {
-  state[ctx.from!.id] = {};
-  ctx.reply("Order cancelled.");
 });
 
 bot.launch();
 
-export const placeOrder= async(ctx: any, message: any) =>{
+export const placeOrder = async (ctx: any, message: any) => {
   const chatIDs = ["1502424561"];
   chatIDs.forEach((chat) => {
     bot.telegram
@@ -196,42 +206,41 @@ export const placeOrder= async(ctx: any, message: any) =>{
         console.log(error);
       });
   });
-  const { token, longShort, leverage, amount , acceptablePrice, symbol} =
+  const { token, longShort, leverage, amount, acceptablePrice, symbol } =
     state[ctx?.from?.id ?? ""] || {};
   if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
     return;
   }
 
   // Compute the order amount based on the selected leverage
-  const _path = [config.USDC, token]
-  const _indexToken = config.USDC
-  const _amountIn = utils.parseUnits(amount.toString(), 6)
-  const _minOut = 0
-  const _sizeDelta = utils.parseUnits((amount * leverage).toString())
-  const _isLong = longShort
-  const _acceptablePrice = utils.parseUnits(acceptablePrice.toString())
-  const _executionFee =  "180000000000000"
-  const _referralCode = "0x0000000000000000000000000000000000000000000000000000000000000000"
-  const _callbackTarget = "0x0000000000000000000000000000000000000000"
+  const _path = [config.USDC, token];
+  const _indexToken = config.USDC;
+  const _amountIn = utils.parseUnits(amount.toString(), 6);
+  const _minOut = 0;
+  const _sizeDelta = utils.parseUnits((amount * leverage).toString());
+  const _isLong = longShort;
+  const _acceptablePrice = utils.parseUnits(acceptablePrice.toString());
+  const _executionFee = "180000000000000";
+  const _referralCode =
+    "0x0000000000000000000000000000000000000000000000000000000000000000";
+  const _callbackTarget = "0x0000000000000000000000000000000000000000";
 
+  //TODO: call the placeholder function
 
-//TODO: call the placeholder function
+  const createOrder = await GmxWrapper.createIncreasePosition(
+    _path,
+    _indexToken,
+    _amountIn,
+    _minOut,
+    _sizeDelta,
+    _isLong,
+    _acceptablePrice,
+    _executionFee,
+    _referralCode,
+    _callbackTarget
+  );
 
-const createOrder = await GmxWrapper.createIncreasePosition(
-  _path,
-  _indexToken,
-  _amountIn,
-  _minOut,
-  _sizeDelta,
-  _isLong,
-  _acceptablePrice,
-  _executionFee,
-  _referralCode,
-  _callbackTarget,
-  
- )
-
- //if(createOrder){
+  //if(createOrder){
 
   const orderDetails = new Order({
     _path,
@@ -243,23 +252,24 @@ const createOrder = await GmxWrapper.createIncreasePosition(
     _acceptablePrice,
     _executionFee,
     _referralCode,
-    _callbackTarget
-  })
+    _callbackTarget,
+  });
 
-  const data = await orderDetails.save()
+  const data = await orderDetails.save();
 
-  console.log(data)
+  console.log(data);
 
- //}
-
-
+  //}
 
   ctx.reply(
-    `Placing orders for ${symbol} token \n which is ${longShort ? "Long" : "Short"} \n of leverage of ${leverage} x \n amount: ${amount}...`
+    `Placing orders for ${symbol} token \n which is ${
+      longShort ? "Long" : "Short"
+    } \n of leverage of ${leverage} x \n amount: ${amount}...`
   );
-  console.log(token, longShort,_sizeDelta);
-  
+  console.log(token, longShort, _sizeDelta);
 
   // TODO: implement the place order function here
-  console.log(`Placing order for ${longShort} ${leverage}x ${_sizeDelta} ${token}...`);
-}
+  console.log(
+    `Placing order for ${longShort} ${leverage}x ${_sizeDelta} ${token}...`
+  );
+};
