@@ -141,33 +141,12 @@ bot.on("text", (ctx: any) => {
     console.log(`The result for a amount: ${amount} and Result: ${sizeDelta}}`);
     
     const message = `Order placed for ${state[ctx.from!.id].longShort ? "Long" : "Short"} ${leverage}x ${amount} Token ${tokenAddress}. Total: ${sizeDelta}`;
-    
-    const buttonMarkup = Telegraf.Markup.inlineKeyboard([
-      Telegraf.Markup.callbackButton("Place Order", "place_order")
-    ]);
+    placeOrder(ctx, message);
 
-    ctx.reply(message, buttonMarkup);
+    ctx.reply(message)
   }
 });
 
-const place_order = (ctx: any, message: string) => {
-  const amount = state[ctx.from.id].amount;
-  const leverage = state[ctx.from.id].leverage!;
-  const tokenAddress = state[ctx.from.id].token;
-
-  if (typeof amount === 'undefined') {
-    ctx.reply('Please enter an amount before placing an order');
-    return;
-  }
-
-  const sizeDelta = amount * leverage;
-  console.log(`The result for amount: ${amount} and Result: ${sizeDelta}`);
-
-  // Call the API to place the order
-  // ...
-
-  ctx.reply(message);
-};
 
 
 
