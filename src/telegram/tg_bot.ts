@@ -59,6 +59,11 @@ const longShortMenu = Telegraf.Extra.markdown().markup((m: any) =>
   ])
 );
 
+const placeOrderButton = Telegraf.Extra.markdown().markup((m: any) => 
+m.inlineKeyboard([
+  m.callbackButton("Place Order", "place_order"),
+]))
+
 const leverageMenu = Telegraf.Extra.markdown().markup((m: any) =>
   m.inlineKeyboard(
     leverages.map((leverage) =>
@@ -144,14 +149,32 @@ bot.on("text", (ctx: any) => {
   
     
     const message = `Order placed for ${state[ctx.from!.id].longShort ? "Long" : "Short"} ${leverage}x ${amount} Token ${tokenAddress}. Total: ${sizeDelta}`;
-    placeOrder(ctx, message);
+    // placeOrder(ctx, message);
 
-    ctx.reply(message)
+    ctx.reply(message, placeOrderButton)
   }
 });
 
 
 
+bot.action("place_order", (ctx: any) => {
+  const amount = state[ctx.from.id].amount;
+  const leverage = state[ctx.from.id].leverage!;
+  const tokenAddress = state[ctx.from.id].token;
+
+  if (typeof amount === 'undefined') {
+    ctx.reply('Please enter an amount before placing an order');
+    return;
+  }
+  const sizeDelta = amount * leverage;
+  const message = `Please confirm your order for for ${state[ctx.from!.id].longShort ? "Long" : "Short"} \n ${leverage} x ${amount} \n Token ${tokenAddress}. Total: ${sizeDelta}`;
+  
+  console.log(`The result for amount: ${amount} and Result: ${sizeDelta}`);
+
+  placeOrder(ctx, message);
+
+  ctx.reply(message);
+})
 
 bot.action("cancel_order", (ctx: any) => {
   state[ctx.from!.id] = {};
@@ -179,8 +202,6 @@ export const placeOrder= async(ctx: any, message: any) =>{
     return;
   }
 
-console.log("HATUFIKI HAPA")
-
   // Compute the order amount based on the selected leverage
   const _path = [config.USDC, token]
   const _indexToken = config.USDC
@@ -195,7 +216,6 @@ console.log("HATUFIKI HAPA")
 
 
 //TODO: call the placeholder function
-// (address[],address,uint256,uint256,uint256,bool,uint256,uint256,bytes32,address)
 
 const createOrder = await GmxWrapper.createIncreasePosition(
   _path,
