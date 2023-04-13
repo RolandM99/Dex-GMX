@@ -135,10 +135,13 @@ bot.on("text", (ctx: any) => {
   if (!isNaN(amount)) {
     state[ctx.from!.id].amount = amount;
     const leverage = state[ctx.from!.id].leverage;
-    const tokenAddress = state[ctx.from!.id].token;
+     const tokenAddress = state[ctx.from!.id].token;
+     
 
     const sizeDelta = amount * leverage!;
     console.log(`The result for a amount: ${amount} and Result: ${sizeDelta}}`);
+
+  
     
     const message = `Order placed for ${state[ctx.from!.id].longShort ? "Long" : "Short"} ${leverage}x ${amount} Token ${tokenAddress}. Total: ${sizeDelta}`;
     placeOrder(ctx, message);
@@ -192,6 +195,7 @@ console.log("HATUFIKI HAPA")
 
 
 //TODO: call the placeholder function
+// (address[],address,uint256,uint256,uint256,bool,uint256,uint256,bytes32,address)
 
 const createOrder = await GmxWrapper.createIncreasePosition(
   _path,
@@ -206,8 +210,6 @@ const createOrder = await GmxWrapper.createIncreasePosition(
   _callbackTarget,
   
  )
-
- 
 
  //if(createOrder){
 
