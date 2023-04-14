@@ -122,7 +122,7 @@ class GMX {
      * @param _params these are the inputs required to place a long order in GMX 
      */
 
-    createIncreasePosition = async (_params: {
+    createIncreasePosition = async (
         _path: string[],
         _indexToken: string,
         _amountIn: any,
@@ -134,22 +134,11 @@ class GMX {
         _referralCode: any,
         _callbackTarget: string
 
-    }) => {
+    ) => {
         try {
 
-            const {
-                _path,
-                _indexToken,
-                _amountIn,
-                _minOut,
-                _sizeDelta,
-                _isLong,
-                _acceptablePrice,
-                _executionFee,
-                _referralCode,
-                _callbackTarget,
 
-            } = _params
+            console.log("We reached here: " )
 
 
             const contract = await this.positionRouterContractsGMx()
@@ -169,7 +158,7 @@ class GMX {
 
             )
 
-            console.log("CreateOrderTx", cretateOrderTx)
+            console.log("CreateOrderTx", cretateOrderTx.hash)
 
 
             return cretateOrderTx

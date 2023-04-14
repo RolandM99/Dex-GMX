@@ -1,7 +1,7 @@
 import { connect } from "mongoose";
 import { config } from "./config";
 
-const connectDB = async () => {
+export const connectDB = async () => {
     try {
         await connect(config.MONGO_DB_URL, {
             keepAlive: true,
@@ -13,5 +13,3 @@ const connectDB = async () => {
         console.log("Could not connect to the database  : ", error);
     }
 };
-
-connectDB();
