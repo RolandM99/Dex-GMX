@@ -193,7 +193,7 @@ class GMX {
     ) => {
         try {
           
-            console.log("In the contract",)
+            console.log("In the contract for createDecreasePosition", _path)
 
             const contractx = await this.positionRouterContractsGMx()
 
@@ -211,7 +211,7 @@ class GMX {
                 _withdrawETH,
                 _callbackTarget,
                 {
-                    gasLimit: 1000000,
+                    gasLimit: 3000000,
                     value: _executionFee
                 }
 
