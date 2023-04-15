@@ -292,3 +292,4 @@ export const closeOrder = async (ctx: any) => {
   // Send a reply message to confirm the position has been closed
   ctx.reply(`Position for ${token} token has been closed.`);
 };
+
