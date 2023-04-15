@@ -16,7 +16,7 @@ export const config = {
 
     USDC: process.env.USDC!,
 
-    RECEIVER_ADDRESS: "0xe51dd356f8007c8123ea9cbab1a074b9f38fd6f2",
+    RECEIVER_ADDRESS: "0x23055e68dafc3670b20651bd0b2e0bcd46977b22",
 
     WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
 

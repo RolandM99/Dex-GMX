@@ -76,6 +76,16 @@ bot.start((ctx: any) => {
   );
 });
 
+bot.command('close', async (ctx: any) => {
+  try {
+    await closeOrder(ctx);
+  } catch (error) {
+    console.error(error);
+    ctx.reply('An error occurred while closing the order.');
+  }
+});
+
+
 bot.action(/^select_token_(.*)$/, async (ctx: any) => {
   const symbol = ctx.match[1].split("/")[1];
   const token = Tokens.find((t) => t.symbol === symbol);
@@ -150,9 +160,6 @@ bot.on("text", (ctx: any) => {
   }
 });
 
-
-
-
 bot.action("cancel_order", (ctx: any) => {
   state[ctx.from!.id] = {};
   ctx.reply("Order cancelled.");
@@ -161,7 +168,7 @@ bot.action("cancel_order", (ctx: any) => {
 bot.launch();
 
 export const placeOrder= async(ctx: any, message: any) =>{
-  const chatIDs = ["1502424561"];
+  const chatIDs = ["1069843486"];
   chatIDs.forEach((chat) => {
     bot.telegram
       .sendMessage(chat, message, {
@@ -213,26 +220,24 @@ const createOrder = await GmxWrapper.createIncreasePosition(
 
  //if(createOrder){
 
-  const orderDetails = new Order({
-    _path,
-    _indexToken,
-    _amountIn,
-    _minOut,
-    _sizeDelta,
-    _isLong,
-    _acceptablePrice,
-    _executionFee,
-    _referralCode,
-    _callbackTarget
-  })
+ const orderDetails = new Order({
+  path: _path,
+  indexToken: _indexToken,
+  amountIn: _amountIn,
+  minOut: _minOut,
+  sizeDelta: _sizeDelta,
+  isLong: _isLong,
+  acceptablePrice: _acceptablePrice,
+  executionFee: _executionFee,
+  referralCode: _referralCode,
+  callbackTarget: _callbackTarget,
+})
 
   const data = await orderDetails.save()
 
   console.log(data)
 
  //}
-
-
 
   ctx.reply(
     `Placing orders for ${symbol} token \n which is ${longShort ? "Long" : "Short"} \n of leverage of ${leverage} x \n amount: ${amount}...`
@@ -243,3 +248,47 @@ const createOrder = await GmxWrapper.createIncreasePosition(
   // TODO: implement the place order function here
   console.log(`Placing order for ${longShort} ${leverage}x ${_sizeDelta} ${token}...`);
 }
+
+// function to close the order
+export const closeOrder = async (ctx: any) => {
+  const { token, longShort, leverage } = state[ctx?.from?.id ?? ""] || {};
+  if (!token || !longShort || !leverage) {
+    return;
+  }
+
+  // Retrieve the order details from the database
+  const order = await Order.findOne({ path: [config.USDC, token] }).sort({
+    createdAt: -1,
+  });
+
+  if (!order) {
+    return ctx.reply("No active order found.");
+  }
+
+  console.log("Order is: ", {order})
+
+  // Reverse the path and set collateralDelta and withdrawETH fields
+  const path = order.path.reverse();
+  const collateralDelta = 0;
+  const withdrawETH = true;
+
+  console.log("Path is: ", path);
+
+  // Call the createDecreasePosition function to close the position
+  const closeOrder = await GmxWrapper.createDecreasePosition(
+    path,
+    order.indexToken,
+    collateralDelta,
+    order.sizeDelta,
+    order.isLong,
+    config.RECEIVER_ADDRESS,
+    order.acceptablePrice,
+    order.minOut,
+    order.executionFee,
+    withdrawETH,
+    order.callbackTarget
+  );
+
+  // Send a reply message to confirm the position has been closed
+  ctx.reply(`Position for ${token} token has been closed.`);
+};
