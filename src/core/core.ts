@@ -198,7 +198,7 @@ class GMX {
             const contractx = await this.positionRouterContractsGMx()
 
 
-            const createDecreaseOrderTx = await contractx.callStatic.createDecreasePosition(
+            const createDecreaseOrderTx = await contractx.createDecreasePosition(
                 _path,
                 _indexToken,
                 _collateralDelta,
@@ -211,7 +211,7 @@ class GMX {
                 _withdrawETH,
                 _callbackTarget,
                 {
-                    gasLimit: 3000000,
+                    // gasLimit: 3000000,
                     value: _executionFee
                 }
 

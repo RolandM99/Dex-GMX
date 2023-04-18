@@ -6,8 +6,8 @@ export const gmxWrapperTrader = async () => {
     let message = `GMX Trading Started... \n 🕒 Time: ${date}`;
     let ctx;
 
-    placeOrder(ctx, message);
-    closeOrder(ctx);
+    await placeOrder(ctx, message);
+    await closeOrder(ctx);
 }
 
 gmxWrapperTrader();

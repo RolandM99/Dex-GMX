@@ -6,6 +6,7 @@ import { config } from "../config/config";
 import { GmxWrapper } from "../core";
 import Tokens from "./data";
 import { connectDB } from "../config/db";
+import axios from "axios";
 connectDB();
 
 require("dotenv").config();
@@ -23,7 +24,7 @@ const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
 const tokens = Tokens.map((token) => `USDC/${token.symbol}`);
 
-const leverages = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+const leverages = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
 const numRows = 2;
 const numCols = 2;
 
@@ -88,7 +89,11 @@ bot.start((ctx: any) => {
 
 bot.command('close', async (ctx: any) => {
   try {
+    ctx.reply("Initiating closing an order...");
+
     await closeOrder(ctx);
+
+    ctx.reply("Order closed");
   } catch (error) {
     console.error(error);
     ctx.reply('An error occurred while closing the order.');
@@ -104,8 +109,8 @@ bot.action(/^select_token_(.*)$/, async (ctx: any) => {
   if (token) {
     const address = token.address;
 
-    const response = await fetch("https://api.gmx.io/prices");
-    const prices = await response.json();
+    const response = await axios.get("https://api.gmx.io/prices");
+    const prices = response.data;  
 
     const tokenPrice = prices[address];
     const tokenPriceInUsd = ((tokenPrice / 1e18) * Math.pow(10, -12)).toFixed(
@@ -179,7 +184,7 @@ bot.action("cancel_order", (ctx: any) => {
   );
 });
 
-bot.action("place_order", (ctx: any) => {
+bot.action("place_order", async(ctx: any) => {
   const amount = state[ctx.from.id].amount;
   const leverage = state[ctx.from.id].leverage!;
   const tokenSymbol = state[ctx.from.id].symbol;
@@ -195,7 +200,7 @@ bot.action("place_order", (ctx: any) => {
 
   console.log(`The result for amount: ${amount} and Result: ${sizeDelta}`);
 
-  placeOrder(ctx, message);
+  await placeOrder(ctx, message);
 
   ctx.reply(message);
 });
@@ -203,18 +208,7 @@ bot.action("place_order", (ctx: any) => {
 bot.launch();
 
 export const placeOrder = async (ctx: any, message: any) => {
-  const chatIDs = ["1069843486"];
-  chatIDs.forEach((chat) => {
-    bot.telegram
-      .sendMessage(chat, message, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      })
-      .catch((error: any) => {
-        console.log("Encouterd an error while sending notification to ", chat);
-        console.log(error);
-      });
-  });
+
   const { token, longShort, leverage, amount, acceptablePrice, symbol } =
     state[ctx?.from?.id ?? ""] || {};
   if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
@@ -233,6 +227,9 @@ export const placeOrder = async (ctx: any, message: any) => {
   const _referralCode = "0x0000000000000000000000000000000000000000000000000000000000000000";
   const _callbackTarget = "0x0000000000000000000000000000000000000000";
 
+  console.log("We reached this point");
+  
+
   //TODO: call the placeholder function
 
   const createOrder = await GmxWrapper.createIncreasePosition(
@@ -246,9 +243,13 @@ export const placeOrder = async (ctx: any, message: any) => {
     _executionFee,
     _referralCode,
     _callbackTarget
-  );
+  ) ;
 
-  //if(createOrder){
+   const orderMessage = await orderPlacedMessage(_indexToken,  createOrder.hash)
+
+   await sendNotification(orderMessage)
+
+  if(createOrder){
 
   const orderDetails = new Order({
     path: _path,
@@ -263,11 +264,11 @@ export const placeOrder = async (ctx: any, message: any) => {
     callbackTarget: _callbackTarget,
   })
 
-  const data = await orderDetails.save();
+  //const data = await orderDetails.save();
 
-  console.log(data);
+  //console.log(data);
 
-  //}
+  }
 
   ctx.reply(
     `Placing orders for ${symbol} token \n which is ${
@@ -284,7 +285,8 @@ export const placeOrder = async (ctx: any, message: any) => {
 
 // Function for closing or cancelling an order
 
-export const closeOrder = async (ctx: any) => {
+export const 
+closeOrder = async (ctx: any) => {
   const { token, longShort, leverage } = state[ctx?.from?.id ?? ""] || {};
   if (!token || !longShort || !leverage) {
     return;
@@ -327,3 +329,33 @@ export const closeOrder = async (ctx: any) => {
   // Send a reply message to confirm the position has been closed
   ctx.reply(`Position for ${token} token has been closed.`);
 };
+
+
+//sending the actual notifcation on tg
+export const sendNotification = async (message: any) => {
+  const chatIDs = ["1502424561"];
+  console.log(typeof chatIDs);
+  chatIDs.forEach(chat => {
+      bot.telegram.sendMessage(chat, message, {
+          parse_mode: "HTML",
+          disable_web_page_preview: true,
+      }).catch((error: any) => {
+          console.log("Encouterd an error while sending notification to ", chat)
+          console.log(error)
+      })
+  });
+  console.log("Done!");
+};
+
+
+//sending the orders  notifications
+export const orderPlacedMessage = async (token: string, txHash: string) => {
+  const explorer = "https://arbiscan.io/"
+  let message = "Successfuly placed an Order"
+  message += "\n\nIndex Token"
+  message += `\n<a href="${explorer}/token/${token}">${token}</a>`
+  message += "\n\n Transaction Hash"
+  message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`
+  console.log("\n\n Message ", message)
+  return message
+}

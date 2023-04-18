@@ -1,5 +1,8 @@
 import { Schema, model } from "mongoose";
 
+const mongoose = require('mongoose');
+
+mongoose.set('strictQuery', false);
 
 interface IOrder {
     path: any,
