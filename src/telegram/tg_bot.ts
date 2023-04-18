@@ -202,7 +202,7 @@ bot.action("place_order", async(ctx: any) => {
 
   await placeOrder(ctx, message);
 
-  ctx.reply(message);
+  // ctx.reply(message);
 });
 
 bot.launch();
@@ -245,7 +245,17 @@ export const placeOrder = async (ctx: any, message: any) => {
     _callbackTarget
   ) ;
 
-   const orderMessage = await orderPlacedMessage(_indexToken,  createOrder.hash)
+  const hash = "0x2b1f6bb6ffc6318912ea76134d6ecd861b224144e177ba4db684318cce2df9d4"
+
+  const orderMessage = await orderPlacedMessage(
+    _indexToken,
+    hash,
+    longShort,
+    leverage,
+    amount,
+    acceptablePrice,
+    symbol
+  );
 
    await sendNotification(orderMessage)
 
@@ -270,11 +280,11 @@ export const placeOrder = async (ctx: any, message: any) => {
 
   }
 
-  ctx.reply(
-    `Placing orders for ${symbol} token \n which is ${
-      longShort ? "Long" : "Short"
-    } \n of leverage of ${leverage} x \n amount: ${amount}...`
-  );
+  // ctx.reply(
+  //   `Placing orders for ${symbol} token \n which is ${
+  //     longShort ? "Long" : "Short"
+  //   } \n of leverage of ${leverage} x \n amount: ${amount}...`
+  // );
   console.log(token, longShort, _sizeDelta);
 
   // TODO: implement the place order function here
@@ -349,13 +359,40 @@ export const sendNotification = async (message: any) => {
 
 
 //sending the orders  notifications
-export const orderPlacedMessage = async (token: string, txHash: string) => {
+// export const orderPlacedMessage = async (token: string, txHash: string) => {
+  
+//   const explorer = "https://arbiscan.io/"
+//   let message = "Successfuly placed an Order"
+//   message += "\n\nIndex Token"
+//   message += `\n<a href="${explorer}/token/${token}">${token}</a>`
+//   message += "\n\n Transaction Hash"
+//   message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`
+//   console.log("\n\n Message ", message)
+//   return message
+// }
+
+const orderPlacedMessage = async (token:any, 
+  txHash:any, 
+  longShort:any, 
+  leverage:any, 
+  amount:any,
+   acceptablePrice:any, 
+   symbol:any) => {
+  
+  const sizeDelta = amount * leverage;
+
   const explorer = "https://arbiscan.io/"
-  let message = "Successfuly placed an Order"
-  message += "\n\nIndex Token"
+  let message = "🎉🎉🎉 You have successfully placed an Order of 👏👏👏"
+  message += `\n\nSymbol: ${symbol}`
+  message += `\nWhich is a: ${longShort ? "Long" : "Short"}`
+  message += `\n with the leverage of: ${leverage}x`
+  message += `\n the amount is: ${amount}$,`
+  message += `\nthe total amount is ${sizeDelta}`
+  message += `\nand the cceptable Price: ${acceptablePrice}$`
+  message += `\n\nIndex Token`
   message += `\n<a href="${explorer}/token/${token}">${token}</a>`
-  message += "\n\n Transaction Hash"
+  message += "\n\nTransaction Hash"
   message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`
-  console.log("\n\n Message ", message)
+  console.log("\n\nMessage ", message)
   return message
 }
