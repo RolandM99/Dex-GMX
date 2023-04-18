@@ -62,8 +62,8 @@ const longShortMenu = Telegraf.Extra.markdown().markup((m: any) =>
 const placeCancelOrderButtons = Telegraf.Extra.markdown().markup((m: any) =>
   m.inlineKeyboard([
     m.callbackButton("Place Order", "place_order"),
-    m.callbackButton("Cancel Order", "cancel_order")
-])
+    m.callbackButton("Cancel Order", "cancel_order"),
+  ])
 );
 
 // const cancelOrder = Telegraf.Extra.markdown().markup((m: any) =>
@@ -87,7 +87,7 @@ bot.start((ctx: any) => {
   );
 });
 
-bot.command('close', async (ctx: any) => {
+bot.command("close", async (ctx: any) => {
   try {
     ctx.reply("Initiating closing an order...");
 
@@ -96,7 +96,7 @@ bot.command('close', async (ctx: any) => {
     ctx.reply("Order closed");
   } catch (error) {
     console.error(error);
-    ctx.reply('An error occurred while closing the order.');
+    ctx.reply("An error occurred while closing the order.");
   }
 });
 
@@ -110,7 +110,7 @@ bot.action(/^select_token_(.*)$/, async (ctx: any) => {
     const address = token.address;
 
     const response = await axios.get("https://api.gmx.io/prices");
-    const prices = response.data;  
+    const prices = response.data;
 
     const tokenPrice = prices[address];
     const tokenPriceInUsd = ((tokenPrice / 1e18) * Math.pow(10, -12)).toFixed(
@@ -184,7 +184,7 @@ bot.action("cancel_order", (ctx: any) => {
   );
 });
 
-bot.action("place_order", async(ctx: any) => {
+bot.action("place_order", async (ctx: any) => {
   const amount = state[ctx.from.id].amount;
   const leverage = state[ctx.from.id].leverage!;
   const tokenSymbol = state[ctx.from.id].symbol;
@@ -208,7 +208,6 @@ bot.action("place_order", async(ctx: any) => {
 bot.launch();
 
 export const placeOrder = async (ctx: any, message: any) => {
-
   const { token, longShort, leverage, amount, acceptablePrice, symbol } =
     state[ctx?.from?.id ?? ""] || {};
   if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
@@ -224,11 +223,11 @@ export const placeOrder = async (ctx: any, message: any) => {
   const _isLong = longShort;
   const _acceptablePrice = utils.parseUnits(acceptablePrice.toString());
   const _executionFee = "180000000000000";
-  const _referralCode = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  const _referralCode =
+    "0x0000000000000000000000000000000000000000000000000000000000000000";
   const _callbackTarget = "0x0000000000000000000000000000000000000000";
 
   console.log("We reached this point");
-  
 
   //TODO: call the placeholder function
 
@@ -243,9 +242,10 @@ export const placeOrder = async (ctx: any, message: any) => {
     _executionFee,
     _referralCode,
     _callbackTarget
-  ) ;
+  );
 
-  const hash = "0x2b1f6bb6ffc6318912ea76134d6ecd861b224144e177ba4db684318cce2df9d4"
+  const hash =
+    "0x2b1f6bb6ffc6318912ea76134d6ecd861b224144e177ba4db684318cce2df9d4";
 
   const orderMessage = await orderPlacedMessage(
     _indexToken,
@@ -257,27 +257,25 @@ export const placeOrder = async (ctx: any, message: any) => {
     symbol
   );
 
-   await sendNotification(orderMessage)
+  await sendNotification(orderMessage);
 
-  if(createOrder){
+  if (createOrder) {
+    const orderDetails = new Order({
+      path: _path,
+      indexToken: _indexToken,
+      amountIn: _amountIn,
+      minOut: _minOut,
+      sizeDelta: _sizeDelta,
+      isLong: _isLong,
+      acceptablePrice: _acceptablePrice,
+      executionFee: _executionFee,
+      referralCode: _referralCode,
+      callbackTarget: _callbackTarget,
+    });
 
-  const orderDetails = new Order({
-    path: _path,
-    indexToken: _indexToken,
-    amountIn: _amountIn,
-    minOut: _minOut,
-    sizeDelta: _sizeDelta,
-    isLong: _isLong,
-    acceptablePrice: _acceptablePrice,
-    executionFee: _executionFee,
-    referralCode: _referralCode,
-    callbackTarget: _callbackTarget,
-  })
+    //const data = await orderDetails.save();
 
-  //const data = await orderDetails.save();
-
-  //console.log(data);
-
+    //console.log(data);
   }
 
   // ctx.reply(
@@ -295,8 +293,7 @@ export const placeOrder = async (ctx: any, message: any) => {
 
 // Function for closing or cancelling an order
 
-export const 
-closeOrder = async (ctx: any) => {
+export const closeOrder = async (ctx: any) => {
   const { token, longShort, leverage } = state[ctx?.from?.id ?? ""] || {};
   if (!token || !longShort || !leverage) {
     return;
@@ -311,7 +308,7 @@ closeOrder = async (ctx: any) => {
     return ctx.reply("No active order found.");
   }
 
-  console.log("Order is: ", {order})
+  console.log("Order is: ", { order });
 
   // Reverse the path and set collateralDelta and withdrawETH fields
   const path = order.path.reverse();
@@ -340,59 +337,47 @@ closeOrder = async (ctx: any) => {
   ctx.reply(`Position for ${token} token has been closed.`);
 };
 
-
 //sending the actual notifcation on tg
 export const sendNotification = async (message: any) => {
   const chatIDs = ["1502424561"];
   console.log(typeof chatIDs);
-  chatIDs.forEach(chat => {
-      bot.telegram.sendMessage(chat, message, {
-          parse_mode: "HTML",
-          disable_web_page_preview: true,
-      }).catch((error: any) => {
-          console.log("Encouterd an error while sending notification to ", chat)
-          console.log(error)
+  chatIDs.forEach((chat) => {
+    bot.telegram
+      .sendMessage(chat, message, {
+        parse_mode: "HTML",
+        disable_web_page_preview: true,
       })
+      .catch((error: any) => {
+        console.log("Encouterd an error while sending notification to ", chat);
+        console.log(error);
+      });
   });
   console.log("Done!");
 };
 
-
-//sending the orders  notifications
-// export const orderPlacedMessage = async (token: string, txHash: string) => {
-  
-//   const explorer = "https://arbiscan.io/"
-//   let message = "Successfuly placed an Order"
-//   message += "\n\nIndex Token"
-//   message += `\n<a href="${explorer}/token/${token}">${token}</a>`
-//   message += "\n\n Transaction Hash"
-//   message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`
-//   console.log("\n\n Message ", message)
-//   return message
-// }
-
-const orderPlacedMessage = async (token:any, 
-  txHash:any, 
-  longShort:any, 
-  leverage:any, 
-  amount:any,
-   acceptablePrice:any, 
-   symbol:any) => {
-  
+const orderPlacedMessage = async (
+  token: any,
+  txHash: any,
+  longShort: any,
+  leverage: any,
+  amount: any,
+  acceptablePrice: any,
+  symbol: any
+) => {
   const sizeDelta = amount * leverage;
 
-  const explorer = "https://arbiscan.io/"
-  let message = "🎉🎉🎉 You have successfully placed an Order of 👏👏👏"
-  message += `\n\nSymbol: ${symbol}`
-  message += `\nWhich is a: ${longShort ? "Long" : "Short"}`
-  message += `\n with the leverage of: ${leverage}x`
-  message += `\n the amount is: ${amount}$,`
-  message += `\nthe total amount is ${sizeDelta}`
-  message += `\nand the cceptable Price: ${acceptablePrice}$`
-  message += `\n\nIndex Token`
-  message += `\n<a href="${explorer}/token/${token}">${token}</a>`
-  message += "\n\nTransaction Hash"
-  message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`
-  console.log("\n\nMessage ", message)
-  return message
-}
+  const explorer = "https://arbiscan.io/";
+  let message = "🎉🎉🎉 You have successfully placed an Order of 👏👏👏";
+  message += `\n\nSymbol: ${symbol}`;
+  message += `\nWhich is a: ${longShort ? "Long" : "Short"}`;
+  message += `\n with the leverage of: ${leverage}x`;
+  message += `\n the amount is: ${amount}$,`;
+  message += `\nthe total amount is ${sizeDelta}`;
+  message += `\nand the cceptable Price: ${acceptablePrice}$`;
+  message += `\n\nIndex Token`;
+  message += `\n<a href="${explorer}/token/${token}">${token}</a>`;
+  message += "\n\nTransaction Hash";
+  message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`;
+  console.log("\n\nMessage ", message);
+  return message;
+};
