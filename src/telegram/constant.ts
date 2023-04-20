@@ -1,8 +1,5 @@
 const { Telegraf, Markup } = require("telegraf");
 import Tokens from "./data";
-import { connectDB } from "../config/db";
-
-connectDB();
 
 // require("dotenv").config();
 

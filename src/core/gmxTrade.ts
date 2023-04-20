@@ -1,4 +1,4 @@
-import { placeOrder, closeOrder } from "../telegram/getOrders";
+import { placeOrder, closeOrder } from "../telegram/tg_bot";
 
 export const gmxWrapperTrader = async () => {
 
