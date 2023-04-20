@@ -277,12 +277,6 @@ export const placeOrder = async (ctx: any, message: any) => {
 
     //console.log(data);
   }
-
-  // ctx.reply(
-  //   `Placing orders for ${symbol} token \n which is ${
-  //     longShort ? "Long" : "Short"
-  //   } \n of leverage of ${leverage} x \n amount: ${amount}...`
-  // );
   console.log(token, longShort, _sizeDelta);
 
   // TODO: implement the place order function here
@@ -367,16 +361,16 @@ const orderPlacedMessage = async (
   const sizeDelta = amount * leverage;
 
   const explorer = "https://arbiscan.io/";
-  let message = "🎉🎉🎉 You have successfully placed an Order of 👏👏👏";
-  message += `\n\nSymbol: ${symbol}`;
-  message += `\nWhich is a: ${longShort ? "Long" : "Short"}`;
-  message += `\n with the leverage of: ${leverage}x`;
-  message += `\n the amount is: ${amount}$,`;
-  message += `\nthe total amount is ${sizeDelta}`;
-  message += `\nand the cceptable Price: ${acceptablePrice}$`;
-  message += `\n\nIndex Token`;
+  let message = "🎉🎉🎉 You have successfully placed an Order 👏👏👏";
+  message += `\n\nSymbol: <b>${symbol}</b>`;
+  message += `\nWhich is a: <b> ${longShort ? "Long" : "Short"}</b>`;
+  message += `\nwith the leverage of: <b>${leverage}x</b> `;
+  message += `\nthe amount is: <b> ${amount}$</b>,`;
+  message += `\nthe total amount is <b>${sizeDelta}</b> `;
+  message += `\nand the acceptable Price: <b>${acceptablePrice}$</b>  `;
+  message += `\n\n <b>Index Token</b>`;
   message += `\n<a href="${explorer}/token/${token}">${token}</a>`;
-  message += "\n\nTransaction Hash";
+  message += "\n\n <b>Transaction Hash</b> ";
   message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`;
   console.log("\n\nMessage ", message);
   return message;
