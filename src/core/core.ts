@@ -198,7 +198,7 @@ class GMX {
             const contractx = await this.positionRouterContractsGMx()
 
 
-            const createDecreaseOrderTx = await contractx.createDecreasePosition(
+            const createDecreaseOrderTx = await contractx.callStatic.createDecreasePosition(
                 _path,
                 _indexToken,
                 _collateralDelta,

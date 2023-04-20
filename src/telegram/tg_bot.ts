@@ -1,24 +1,14 @@
-import { Order } from "./../models/schema";
-const CallbackQuery = require("node-telegram-bot-api");
 const { Telegraf, Markup } = require("telegraf");
-import { constants, utils } from "ethers";
-import { config } from "../config/config";
-import { GmxWrapper } from "../core";
 import Tokens from "./data";
 import { connectDB } from "../config/db";
 import axios from "axios";
+import {longShortMenu, placeCancelOrderButtons, leverageMenu, tokenMenu } from "./constant";
+import { placeOrder, closeOrder } from "./getOrders";
+import {UserState} from "./types/interfaces";
+
 connectDB();
 
 require("dotenv").config();
-
-interface UserState {
-  symbol?: string;
-  token?: string;
-  longShort?: boolean;
-  leverage?: number;
-  amount?: number;
-  acceptablePrice?: any;
-}
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -30,53 +20,6 @@ const numCols = 2;
 
 const state: Record<number, UserState> = {};
 
-const tokenMenu = Telegraf.Extra.markdown().markup((m: any) => {
-  const keyboard = [];
-
-  for (let i = 0; i < tokens.length; i += numCols) {
-    const row = [];
-
-    for (let j = 0; j < numCols; j++) {
-      const tokenIndex = i + j;
-      if (tokenIndex >= tokens.length) {
-        break;
-      }
-
-      const token = tokens[tokenIndex];
-      row.push(m.callbackButton(token, `select_token_${token}`));
-    }
-
-    keyboard.push(row);
-  }
-
-  return m.inlineKeyboard(keyboard);
-});
-
-const longShortMenu = Telegraf.Extra.markdown().markup((m: any) =>
-  m.inlineKeyboard([
-    m.callbackButton("Long", "select_long"),
-    m.callbackButton("Short", "select_short"),
-  ])
-);
-
-const placeCancelOrderButtons = Telegraf.Extra.markdown().markup((m: any) =>
-  m.inlineKeyboard([
-    m.callbackButton("Place Order", "place_order"),
-    m.callbackButton("Cancel Order", "cancel_order"),
-  ])
-);
-
-// const cancelOrder = Telegraf.Extra.markdown().markup((m: any) =>
-//   m.inlineKeyboard([m.callbackButton("Cancel Order", "cancel_order")])
-// );
-
-const leverageMenu = Telegraf.Extra.markdown().markup((m: any) =>
-  m.inlineKeyboard(
-    leverages.map((leverage) =>
-      m.callbackButton(`${leverage}x`, `select_leverage_${leverage}`)
-    )
-  )
-);
 
 bot.start((ctx: any) => {
   console.log("New user has joined the bot");
@@ -207,171 +150,4 @@ bot.action("place_order", async (ctx: any) => {
 
 bot.launch();
 
-export const placeOrder = async (ctx: any, message: any) => {
-  const { token, longShort, leverage, amount, acceptablePrice, symbol } =
-    state[ctx?.from?.id ?? ""] || {};
-  if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
-    return;
-  }
 
-  // Compute the order amount based on the selected leverage
-  const _path = [config.USDC, token];
-  const _indexToken = config.USDC;
-  const _amountIn = utils.parseUnits(amount.toString(), 6);
-  const _minOut = 0;
-  const _sizeDelta = utils.parseUnits((amount * leverage).toString());
-  const _isLong = longShort;
-  const _acceptablePrice = utils.parseUnits(acceptablePrice.toString());
-  const _executionFee = "180000000000000";
-  const _referralCode =
-    "0x0000000000000000000000000000000000000000000000000000000000000000";
-  const _callbackTarget = "0x0000000000000000000000000000000000000000";
-
-  console.log("We reached this point");
-
-  //TODO: call the placeholder function
-
-  const createOrder = await GmxWrapper.createIncreasePosition(
-    _path,
-    _indexToken,
-    _amountIn,
-    _minOut,
-    _sizeDelta,
-    _isLong,
-    _acceptablePrice,
-    _executionFee,
-    _referralCode,
-    _callbackTarget
-  );
-
-  const hash =
-    "0x2b1f6bb6ffc6318912ea76134d6ecd861b224144e177ba4db684318cce2df9d4";
-
-  const orderMessage = await orderPlacedMessage(
-    _indexToken,
-    hash,
-    longShort,
-    leverage,
-    amount,
-    acceptablePrice,
-    symbol
-  );
-
-  await sendNotification(orderMessage);
-
-  if (createOrder) {
-    const orderDetails = new Order({
-      path: _path,
-      indexToken: _indexToken,
-      amountIn: _amountIn,
-      minOut: _minOut,
-      sizeDelta: _sizeDelta,
-      isLong: _isLong,
-      acceptablePrice: _acceptablePrice,
-      executionFee: _executionFee,
-      referralCode: _referralCode,
-      callbackTarget: _callbackTarget,
-    });
-
-    //const data = await orderDetails.save();
-
-    //console.log(data);
-  }
-  console.log(token, longShort, _sizeDelta);
-
-  // TODO: implement the place order function here
-  console.log(
-    `Placing order for ${longShort} ${leverage}x ${_sizeDelta} ${token}...`
-  );
-};
-
-// Function for closing or cancelling an order
-
-export const closeOrder = async (ctx: any) => {
-  const { token, longShort, leverage } = state[ctx?.from?.id ?? ""] || {};
-  if (!token || !longShort || !leverage) {
-    return;
-  }
-
-  // Retrieve the order details from the database
-  const order = await Order.findOne({ path: [config.USDC, token] }).sort({
-    createdAt: -1,
-  });
-
-  if (!order) {
-    return ctx.reply("No active order found.");
-  }
-
-  console.log("Order is: ", { order });
-
-  // Reverse the path and set collateralDelta and withdrawETH fields
-  const path = order.path.reverse();
-  path[1] = config.USDC;
-  const collateralDelta = 0;
-  const withdrawETH = true;
-
-  console.log("Path is: ", path);
-
-  // Call the createDecreasePosition function to close the position
-  const closeOrder = await GmxWrapper.createDecreasePosition(
-    path,
-    order.indexToken,
-    collateralDelta,
-    order.sizeDelta,
-    order.isLong,
-    config.RECEIVER_ADDRESS,
-    order.acceptablePrice,
-    order.minOut,
-    order.executionFee,
-    withdrawETH,
-    order.callbackTarget
-  );
-
-  // Send a reply message to confirm the position has been closed
-  ctx.reply(`Position for ${token} token has been closed.`);
-};
-
-//sending the actual notifcation on tg
-export const sendNotification = async (message: any) => {
-  const chatIDs = ["1502424561"];
-  console.log(typeof chatIDs);
-  chatIDs.forEach((chat) => {
-    bot.telegram
-      .sendMessage(chat, message, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      })
-      .catch((error: any) => {
-        console.log("Encouterd an error while sending notification to ", chat);
-        console.log(error);
-      });
-  });
-  console.log("Done!");
-};
-
-const orderPlacedMessage = async (
-  token: any,
-  txHash: any,
-  longShort: any,
-  leverage: any,
-  amount: any,
-  acceptablePrice: any,
-  symbol: any
-) => {
-  const sizeDelta = amount * leverage;
-
-  const explorer = "https://arbiscan.io/";
-  let message = "🎉🎉🎉 You have successfully placed an Order 👏👏👏";
-  message += `\n\nSymbol: <b>${symbol}</b>`;
-  message += `\nWhich is a: <b> ${longShort ? "Long" : "Short"}</b>`;
-  message += `\nwith the leverage of: <b>${leverage}x</b> `;
-  message += `\nthe amount is: <b> ${amount}$</b>,`;
-  message += `\nthe total amount is <b>${sizeDelta}</b> `;
-  message += `\nand the acceptable Price: <b>${acceptablePrice}$</b>  `;
-  message += `\n\n <b>Index Token</b>`;
-  message += `\n<a href="${explorer}/token/${token}">${token}</a>`;
-  message += "\n\n <b>Transaction Hash</b> ";
-  message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`;
-  console.log("\n\nMessage ", message);
-  return message;
-};
