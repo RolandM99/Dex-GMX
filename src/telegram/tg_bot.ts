@@ -306,7 +306,7 @@ export const closeOrder = async (ctx: any) => {
 
   // Reverse the path and set collateralDelta and withdrawETH fields
   const path = order.path.reverse();
-  path[1] = config.WETH;
+  path[1] = config.USDC;
   const collateralDelta = 0;
   const withdrawETH = true;
 
