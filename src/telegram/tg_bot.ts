@@ -1,24 +1,19 @@
-import { Order } from "./../models/schema";
-const CallbackQuery = require("node-telegram-bot-api");
 const { Telegraf, Markup } = require("telegraf");
-import { constants, utils } from "ethers";
-import { config } from "../config/config";
-import { GmxWrapper } from "../core";
 import Tokens from "./data";
 import { connectDB } from "../config/db";
 import axios from "axios";
+import {longShortMenu, placeCancelOrderButtons, leverageMenu, tokenMenu } from "./constant";
+import { Order } from "./../models/schema";
+import { utils } from "ethers";
+import { config } from "../config/config";
+import { GmxWrapper } from "../core";
+import {sendNotification, orderPlacedMessage} from "./tg_notifications"
+import {UserState} from "./types/interfaces"
+
+
 connectDB();
 
 require("dotenv").config();
-
-interface UserState {
-  symbol?: string;
-  token?: string;
-  longShort?: boolean;
-  leverage?: number;
-  amount?: number;
-  acceptablePrice?: any;
-}
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -30,53 +25,6 @@ const numCols = 2;
 
 const state: Record<number, UserState> = {};
 
-const tokenMenu = Telegraf.Extra.markdown().markup((m: any) => {
-  const keyboard = [];
-
-  for (let i = 0; i < tokens.length; i += numCols) {
-    const row = [];
-
-    for (let j = 0; j < numCols; j++) {
-      const tokenIndex = i + j;
-      if (tokenIndex >= tokens.length) {
-        break;
-      }
-
-      const token = tokens[tokenIndex];
-      row.push(m.callbackButton(token, `select_token_${token}`));
-    }
-
-    keyboard.push(row);
-  }
-
-  return m.inlineKeyboard(keyboard);
-});
-
-const longShortMenu = Telegraf.Extra.markdown().markup((m: any) =>
-  m.inlineKeyboard([
-    m.callbackButton("Long", "select_long"),
-    m.callbackButton("Short", "select_short"),
-  ])
-);
-
-const placeCancelOrderButtons = Telegraf.Extra.markdown().markup((m: any) =>
-  m.inlineKeyboard([
-    m.callbackButton("Place Order", "place_order"),
-    m.callbackButton("Cancel Order", "cancel_order"),
-  ])
-);
-
-// const cancelOrder = Telegraf.Extra.markdown().markup((m: any) =>
-//   m.inlineKeyboard([m.callbackButton("Cancel Order", "cancel_order")])
-// );
-
-const leverageMenu = Telegraf.Extra.markdown().markup((m: any) =>
-  m.inlineKeyboard(
-    leverages.map((leverage) =>
-      m.callbackButton(`${leverage}x`, `select_leverage_${leverage}`)
-    )
-  )
-);
 
 bot.start((ctx: any) => {
   console.log("New user has joined the bot");
@@ -331,47 +279,3 @@ export const closeOrder = async (ctx: any) => {
   ctx.reply(`Position for ${token} token has been closed.`);
 };
 
-//sending the actual notifcation on tg
-export const sendNotification = async (message: any) => {
-  const chatIDs = ["1502424561"];
-  console.log(typeof chatIDs);
-  chatIDs.forEach((chat) => {
-    bot.telegram
-      .sendMessage(chat, message, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      })
-      .catch((error: any) => {
-        console.log("Encouterd an error while sending notification to ", chat);
-        console.log(error);
-      });
-  });
-  console.log("Done!");
-};
-
-const orderPlacedMessage = async (
-  token: any,
-  txHash: any,
-  longShort: any,
-  leverage: any,
-  amount: any,
-  acceptablePrice: any,
-  symbol: any
-) => {
-  const sizeDelta = amount * leverage;
-
-  const explorer = "https://arbiscan.io/";
-  let message = "🎉🎉🎉 You have successfully placed an Order 👏👏👏";
-  message += `\n\nSymbol: <b>${symbol}</b>`;
-  message += `\nWhich is a: <b> ${longShort ? "Long" : "Short"}</b>`;
-  message += `\nwith the leverage of: <b>${leverage}x</b> `;
-  message += `\nthe amount is: <b> ${amount}$</b>,`;
-  message += `\nthe total amount is <b>${sizeDelta}</b> `;
-  message += `\nand the acceptable Price: <b>${acceptablePrice}$</b>  `;
-  message += `\n\n <b>Index Token</b>`;
-  message += `\n<a href="${explorer}/token/${token}">${token}</a>`;
-  message += "\n\n <b>Transaction Hash</b> ";
-  message += `\n<a href="${explorer}/tx/${txHash}">${txHash}</a>`;
-  console.log("\n\nMessage ", message);
-  return message;
-};

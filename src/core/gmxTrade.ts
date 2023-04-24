@@ -10,4 +10,4 @@ export const gmxWrapperTrader = async () => {
     await closeOrder(ctx);
 }
 
-gmxWrapperTrader();
+// gmxWrapperTrader();
