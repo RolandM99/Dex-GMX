@@ -20,6 +20,6 @@ export const config = {
 
     WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
 
-    CHAT_ID: process.env.CHAT_ID!,
+    CHAT_ID: ["1069843486"]
 
 }

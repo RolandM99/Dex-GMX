@@ -1,10 +1,12 @@
+import { config } from "../config/config";
+
 const { Telegraf, Markup } = require("telegraf");
 
 //sending the actual notifcation on tg
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
 export const sendNotification = async (message: any) => {
-  const chatIDs = ["1502424561"];
+  const chatIDs = config.CHAT_ID;
   console.log(typeof chatIDs);
   chatIDs.forEach((chat) => {
     bot.telegram

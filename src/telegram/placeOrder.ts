@@ -1,4 +1,4 @@
-import { Order } from "./../models/schema";
+import { Order } from "../models/schema";
 import { utils } from "ethers";
 import { config } from "../config/config";
 import { GmxWrapper } from "../core";
@@ -7,7 +7,7 @@ import {UserState} from "./types/interfaces"
 
 const state: Record<number, UserState> = {};
 
-export const placeOrder = async (ctx: any, message: any) => {
+const placeOrder = async (ctx: any, message: any) => {
     const { token, longShort, leverage, amount, acceptablePrice, symbol } =
       state[ctx?.from?.id ?? ""] || {};
     if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
@@ -85,48 +85,4 @@ export const placeOrder = async (ctx: any, message: any) => {
     );
   };
   
-  // Function for closing or cancelling an order
-  
-  export const closeOrder = async (ctx: any) => {
-    const { token, longShort, leverage } = state[ctx?.from?.id ?? ""] || {};
-    if (!token || !longShort || !leverage) {
-      return;
-    }
-  
-    // Retrieve the order details from the database
-    const order = await Order.findOne({ path: [config.USDC, token] }).sort({
-      createdAt: -1,
-    });
-  
-    if (!order) {
-      return ctx.reply("No active order found.");
-    }
-  
-    console.log("Order is: ", { order });
-  
-    // Reverse the path and set collateralDelta and withdrawETH fields
-    const path = order.path.reverse();
-    path[1] = config.USDC;
-    const collateralDelta = 0;
-    const withdrawETH = true;
-  
-    console.log("Path is: ", path);
-  
-    // Call the createDecreasePosition function to close the position
-    const closeOrder = await GmxWrapper.createDecreasePosition(
-      path,
-      order.indexToken,
-      collateralDelta,
-      order.sizeDelta,
-      order.isLong,
-      config.RECEIVER_ADDRESS,
-      order.acceptablePrice,
-      order.minOut,
-      order.executionFee,
-      withdrawETH,
-      order.callbackTarget
-    );
-  
-    // Send a reply message to confirm the position has been closed
-    ctx.reply(`Position for ${token} token has been closed.`);
-  };
+  export default placeOrder;
