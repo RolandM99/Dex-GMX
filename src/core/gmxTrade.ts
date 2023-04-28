@@ -1,5 +1,4 @@
-import { closeOrder } from "../telegram/tg_bot";
-import placeOrder from "../telegram/placeOrder";
+import { placeOrder, closeOrder } from "../telegram/tg_bot";
 export const gmxWrapperTrader = async () => {
 
     const date = new Date().toLocaleDateString();
