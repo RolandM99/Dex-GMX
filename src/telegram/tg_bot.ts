@@ -9,7 +9,7 @@ import { config } from "../config/config";
 import { GmxWrapper } from "../core";
 import {sendNotification, orderPlacedMessage} from "./tg_notifications"
 import {UserState} from "./types/interfaces"
-import placeOrder  from "./placeOrder";
+import getPnl from "./pnlOrders";
 
 
 connectDB();
@@ -38,16 +38,24 @@ bot.start((ctx: any) => {
 
 bot.command("close", async (ctx: any) => {
   try {
-    state[ctx.from!.id] = {};
-    ctx.reply("Initiating closing an order...");
     await closeOrder(ctx);
-
-    ctx.reply("Order closed");
   } catch (error) {
     console.error(error);
     ctx.reply("An error occurred while closing the order.");
   }
 });
+
+bot.command("pnl", async (ctx:any) => {
+  try {
+    state[ctx.from!.id] = {};
+    ctx.reply("Initiating getting pnl...");
+    await getPnl(ctx);
+    ctx.reply("Getting profit and loss of your orders");
+  } catch (error) {
+    console.error(error);
+    ctx.reply("An error occurred while getting pnl.");
+  }
+})
 
 bot.action(/^select_token_(.*)$/, async (ctx: any) => {
   const symbol = ctx.match[1].split("/")[1];
@@ -106,7 +114,7 @@ bot.action(/^select_leverage_(.*)$/, (ctx: any) => {
   ctx.reply("Please enter the order amount:");
 });
 
-bot.on("text", (ctx: any) => {
+const handleText1 = (ctx: any) => {
   const amount = parseFloat(ctx.message.text);
   if (!isNaN(amount)) {
     state[ctx.from!.id].amount = amount;
@@ -122,7 +130,48 @@ bot.on("text", (ctx: any) => {
 
     ctx.reply(message, placeCancelOrderButtons);
   }
-});
+};
+
+const handleText2 = async (ctx: any) => {
+  const input = ctx.message.text.trim();
+  if (!/^\d+$/.test(input)) {
+    return ctx.reply("Invalid input. Please enter a number.");
+  }
+
+  const index = parseInt(input) - 1;
+  if (index < 0 || index >= (await orders).length) {
+    return ctx.reply(`Invalid input. Please enter a number between 1 and ${(await orders).length}.`);
+  }
+  const order = (await orders)[index];
+
+  // Reverse the path and set collateralDelta and withdrawETH fields
+  const path = order.path.reverse();
+  path[1] = config.USDC;
+  const collateralDelta = 0;
+  const withdrawETH = true;
+
+  // Call the createDecreasePosition function to close the position
+  const closeOrder = await GmxWrapper.createDecreasePosition(
+    path,
+    order.indexToken,
+    collateralDelta,
+    order.sizeDelta,
+    order.isLong,
+    config.RECEIVER_ADDRESS,
+    order.acceptablePrice,
+    order.minOut,
+    order.executionFee,
+    withdrawETH,
+    order.callbackTarget
+  );
+
+  // Send a reply message to confirm the position has been closed
+  await ctx.reply(`Position for ${order.path.join("-")} has been closed.`);
+};
+
+bot.on("text", handleText1);
+
+bot.on("text", handleText2);
 
 bot.action("cancel_order", (ctx: any) => {
   // state[ctx.from!.id] = {};
@@ -156,6 +205,85 @@ bot.action("place_order", async (ctx: any) => {
 
 bot.launch();
 
+// function for placing an order
+
+export const placeOrder = async (ctx: any, message: any) => {
+  const { token, longShort, leverage, amount, acceptablePrice, symbol } =
+    state[ctx?.from?.id ?? ""] || {};
+  if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
+    return;
+  }
+
+  // Compute the order amount based on the selected leverage
+  const _path = [config.USDC, token];
+  const _indexToken = config.USDC;
+  const _amountIn = utils.parseUnits(amount.toString(), 6);
+  const _minOut = 0;
+  const _sizeDelta = utils.parseUnits((amount * leverage).toString());
+  const _isLong = longShort;
+  const _acceptablePrice = utils.parseUnits(acceptablePrice.toString());
+  const _executionFee = "180000000000000";
+  const _referralCode =
+    "0x0000000000000000000000000000000000000000000000000000000000000000";
+  const _callbackTarget = "0x0000000000000000000000000000000000000000";
+
+  console.log("We reached this point");
+
+  //TODO: call the placeholder function
+
+  const createOrder = await GmxWrapper.createIncreasePosition(
+    _path,
+    _indexToken,
+    _amountIn,
+    _minOut,
+    _sizeDelta,
+    _isLong,
+    _acceptablePrice,
+    _executionFee,
+    _referralCode,
+    _callbackTarget
+  );
+
+  const hash =
+    "0x2b1f6bb6ffc6318912ea76134d6ecd861b224144e177ba4db684318cce2df9d4";
+
+  const orderMessage = await orderPlacedMessage(
+    _indexToken,
+    hash,
+    longShort,
+    leverage,
+    amount,
+    acceptablePrice,
+    symbol
+  );
+
+  await sendNotification(orderMessage);
+
+  if (createOrder) {
+    const orderDetails = new Order({
+      path: _path,
+      indexToken: _indexToken,
+      amountIn: _amountIn,
+      minOut: _minOut,
+      sizeDelta: _sizeDelta,
+      isLong: _isLong,
+      acceptablePrice: _acceptablePrice,
+      executionFee: _executionFee,
+      referralCode: _referralCode,
+      callbackTarget: _callbackTarget,
+    });
+
+    const data = await orderDetails.save();
+
+    // console.log(data);
+  }
+  console.log(token, longShort, _sizeDelta);
+
+  // Send a message to the user
+  console.log(
+    `Placing order for ${longShort} ${leverage}x ${_sizeDelta} ${token}...`
+  );
+};
 
 // Function for closing or cancelling an order
 
@@ -165,41 +293,28 @@ export const closeOrder = async (ctx: any) => {
     return;
   }
 
-  // Retrieve the order details from the database
-  const order = await Order.findOne({ path: [config.USDC, token] }).sort({
+  // Retrieve all orders from the database
+  const orders = await Order.find().sort({
     createdAt: -1,
   });
 
-  if (!order) {
-    return ctx.reply("No active order found.");
+  if (orders.length === 0) {
+    return ctx.reply("No active orders found.");
   }
 
-  console.log("Order is: ", { order });
-
-  // Reverse the path and set collateralDelta and withdrawETH fields
-  const path = order.path.reverse();
-  path[1] = config.USDC;
-  const collateralDelta = 0;
-  const withdrawETH = true;
-
-  console.log("Path is: ", path);
-
-  // Call the createDecreasePosition function to close the position
-  const closeOrder = await GmxWrapper.createDecreasePosition(
-    path,
-    order.indexToken,
-    collateralDelta,
-    order.sizeDelta,
-    order.isLong,
-    config.RECEIVER_ADDRESS,
-    order.acceptablePrice,
-    order.minOut,
-    order.executionFee,
-    withdrawETH,
-    order.callbackTarget
+  // Construct a list of orders to display to the user
+  const orderList = orders.map(
+    (order, index) => `${index + 1}. ${order.path.join("-")}`
   );
 
-  // Send a reply message to confirm the position has been closed
-  ctx.reply(`Position for ${token} token has been closed.`);
-};
+  // Prompt the user to select an order
+  await ctx.replyWithMarkdown(`Please select an order to close:\n${orderList.join("\n\n")}`);
+}
+
+const orders =  Order.find().sort({
+  createdAt: -1,
+});
+  // Wait for the user to input the order ID
+ 
+
 
