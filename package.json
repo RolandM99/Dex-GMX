@@ -4,7 +4,6 @@
   "main": "src/index.ts",
   "license": "MIT",
   "scripts": {
-    "start": "ts-node-dev -r dotenv/config src/index.ts",
     "dev": "ts-node-dev -r dotenv/config src/main.ts"
   },
   "dependencies": {
