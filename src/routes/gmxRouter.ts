@@ -1,8 +1,7 @@
-import { utils } from "ethers";
 import * as express from "express";
 import { GmxWrapper } from "../core";
 import { config } from "../config/config";
-import  "../config/db"
+import "../config/db"
 import { Order } from "../models/schema";
 
 const router = express.Router();
@@ -31,30 +30,30 @@ router.post("/long", async (req: any, res: any) => {
 
         // if (approve) {
 
-            // call the  createIncreasePosition and passing the params
+        // call the  createIncreasePosition and passing the params
 
-            // const order = await GmxWrapper.createIncreasePosition(_params)
+        // const order = await GmxWrapper.createIncreasePosition(_params)
 
-            // if (order) {
+        // if (order) {
 
-                //save the order to the db
+        //save the order to the db
 
-                let orderDetails = new Order({
-                    path: req.body._path,
-                    amountIn: req.body._amountIn,
-                    indexToken: req.body._indexToken,
-                    minOut: req.body._minOut,
-                    sizeDelta: req.body._sizeDelta,
-                    acceptablePrice: req.body._acceptablePrice,
-                    executionFee: req.body._executionFee,
-                    callbackTarget: req.body._callbackTarget,
-                    isLong: req.body._isLong,
-                    referralCode: req.body._referralCode
-                })
+        let orderDetails = new Order({
+            path: req.body._path,
+            amountIn: req.body._amountIn,
+            indexToken: req.body._indexToken,
+            minOut: req.body._minOut,
+            sizeDelta: req.body._sizeDelta,
+            acceptablePrice: req.body._acceptablePrice,
+            executionFee: req.body._executionFee,
+            callbackTarget: req.body._callbackTarget,
+            isLong: req.body._isLong,
+            referralCode: req.body._referralCode
+        })
 
-                const data = await orderDetails.save()
+        const data = await orderDetails.save()
 
-                res.send({ status: 200, data })
+        res.send({ status: 200, data })
 
         //     }
 
@@ -68,9 +67,9 @@ router.post("/long", async (req: any, res: any) => {
 
 router.post("/close", async (req: any, res: any) => {
     try {
-       
 
-        //TODO  querry the db to get the order posted 
+
+        //TODO  query the db to get the order posted 
 
         let orderDetails: any = await Order.findById({
             _id: "63d2814fda5312e7e6433f9a"
@@ -150,13 +149,13 @@ router.get("/orders", async (req: any, res: any) => {
     console.log("active orders", data)
 
     if (data) {
-        res.send( data )
+        res.send(data)
     }
 })
 
 router.delete("/activeOrder/:id", async (req: any, res: any) => {
     try {
-        const id  = req.params.id
+        const id = req.params.id
         const removeOrder = await Order.findByIdAndDelete({ _id: id })
 
         if (removeOrder) {

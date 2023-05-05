@@ -5,24 +5,20 @@ const { Telegraf, Markup } = require("telegraf");
 //sending the actual notifcation on tg
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-export const sendNotification = async (message: any) => {
-  const chatIDs = config.CHAT_ID;
-  console.log(typeof chatIDs);
-  chatIDs.forEach((chat) => {
-    bot.telegram
-      .sendMessage(chat, message, {
-        parse_mode: "HTML",
-        disable_web_page_preview: true,
-      })
-      .catch((error: any) => {
-        console.log("Encouterd an error while sending notification to ", chat);
-        console.log(error);
-      });
-  });
+export const sendNotification = async (message: any, chatId: string) => {
+  bot.telegram
+    .sendMessage(chatId, message, {
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+    })
+    .catch((error: any) => {
+      console.log("Encountered an error while sending notification to ", chatId);
+      console.log(error);
+    });
   console.log("Done!");
 };
 
-export const orderPlacedMessage = async (
+export const orderPlacedMessage = (
   token: any,
   txHash: any,
   longShort: any,
@@ -40,7 +36,7 @@ export const orderPlacedMessage = async (
   message += `\nwith the leverage of: <b>${leverage}x</b> `;
   message += `\nthe amount is: <b> ${amount}$</b>,`;
   message += `\nthe total amount is <b>${sizeDelta}</b> `;
-  message += `\nand the acceptable Price: <b>${acceptablePrice}$</b>  `;
+  message += `\nand the acceptable Price: <b>$${acceptablePrice}</b>  `;
   message += `\n\n <b>Index Token</b>`;
   message += `\n<a href="${explorer}/token/${token}">${token}</a>`;
   message += "\n\n <b>Transaction Hash</b> ";
