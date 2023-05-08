@@ -1,4 +1,5 @@
 export interface UserState {
+    selectedButtonIndex?: any;
     input?: any;
     symbol?: string;
     token?: string;
@@ -6,4 +7,6 @@ export interface UserState {
     leverage?: number;
     amount?: number;
     acceptablePrice?: any;
+    userId?: string;
+    selectedDirection?: boolean;
   }

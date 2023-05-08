@@ -18,11 +18,11 @@ connectDB();
 require("dotenv").config();
 
 interface SessionData {
-  selectedButtons: string[];
+  selectedTokens: string[];
 }
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
-bot.use(session())
+
 
 const tokens = Tokens.map((token) => `USDC/${token.symbol}`);
 
@@ -31,35 +31,95 @@ const numRows = 2;
 const numCols = 2;
 
 const state: Record<number, UserState> = {};
-
+bot.use(session())
 
 export const tgWrapper = () => {
-  console.log("starting")
-  // launch tg bot  
-  bot.launch();
+  console.log("starting...")
 
+  bot.launch();
   bot.start((ctx: any) => {
+    
     console.log("New user has joined the bot");
+
+    const buttons = Tokens.map(token => {
+      return  Markup.callbackButton(`USDC/${token.symbol}`, `USDC/${token.symbol}`);
+    });
     state[ctx.from!.id] = {};
     ctx.reply(
-      "🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex platform on easy to use way",
+      "🚀Welcome to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex platform on easy to use way \n Please select a token:", Extra.markup(
+        
+          Markup.inlineKeyboard(buttons, { columns: 2 })
+      )      
     );
 
-    ctx.reply('Place an order by selecting the relevant options ', Extra.markup(
+    bot.action(/USDC\/(.+)/, async (ctx: any) => {
+      try {
+        if (ctx.match[1]) {
+          // Handle USDC/token selection
+          const symbol = ctx.match[1];
+    
+          // update the selected button with a checkmark emoji
+          const selectedButtonIndex = buttons.findIndex(
+            (button) => button.callback_data === `USDC/${symbol}`
+          );
+    
+          const prevSelectedButtonIndex =
+            state[ctx.from!.id]?.selectedButtonIndex;
+          if (
+            prevSelectedButtonIndex !== undefined &&
+            prevSelectedButtonIndex !== selectedButtonIndex
+          ) {
+            buttons[prevSelectedButtonIndex].text = buttons[
+              prevSelectedButtonIndex
+            ].text.replace(" ✅", "");
+          }
+    
+          const selectedButtonText = buttons[selectedButtonIndex].text;
+          if (!selectedButtonText.endsWith(" ✅")) {
+            buttons[selectedButtonIndex].text += " ✅";
+          } else {
+            console.log("already selected");
+          }
+          const newMarkup = Markup.inlineKeyboard(buttons, { columns: 2 });
+    
+          // update the message with the new button markup
+          ctx.editMessageReplyMarkup(newMarkup);
+          state[ctx.from!.id].selectedButtonIndex = selectedButtonIndex;
+    
+          // Fetch token price from the API
+          
+          const token = Tokens.find((t) => t.symbol === symbol);
+    
+          if (token) {
+            const address = token.address;
+            const response = await axios.get("https://api.gmx.io/prices");
+            const prices = response.data;
+    
+            const tokenPrice = prices[address];
+            const tokenPriceInUsd = (
+              (tokenPrice / 1e18) *
+              Math.pow(10, -12)
+            ).toFixed(2);
+    
+            console.log("Token Price:", tokenPriceInUsd);
+          } else {
+            console.log("Token not found");
+          }
+        } 
+
+        
+      } catch (error) {
+        console.error(error);
+      }
+    });
+
+    ctx.reply('Select Position:', Extra.markup(
       Markup.inlineKeyboard([
-        Markup.callbackButton('USDC/ETH', 'USDC/WBTC'),
-        Markup.callbackButton('USDC/ETH', 'USDC/WBTC'),
-        Markup.callbackButton('USDC/ETH', 'USDC/WBTC'),
-        Markup.callbackButton('USDC/LINK', 'USDC/UNI')
-      ], { columns: 2 })
+        Markup.callbackButton(`Long${state[ctx.from!.id].selectedDirection === true ? ' ✅' : ''}`, 'long'),
+        Markup.callbackButton(`Short${state[ctx.from!.id].selectedDirection === false ? ' ✅' : ''}`, 'short'),
+      ])
     ));
 
-    ctx.reply('Select trade direction :', Extra.markup(
-      Markup.inlineKeyboard([
-        Markup.callbackButton('Long', 'long'),
-        Markup.callbackButton('Short', 'short'),
-      ], { columns: 2 })
-    ));
 
     ctx.reply('Select leverage :', Extra.markup(
       Markup.inlineKeyboard([
@@ -76,72 +136,40 @@ export const tgWrapper = () => {
         { columns: 2 })
     ));
 
-    // ctx.reply(placeOrderButton)
+  });
+
+  
+  bot.action(['long'], (ctx: any) => {
+    state[ctx.from!.id].selectedDirection = true;
+  
+      ctx.editMessageReplyMarkup(Markup.inlineKeyboard([
+        Markup.callbackButton(`Long${state[ctx.from!.id].selectedDirection === true ? ' ✅' : ''}`, 'long'),
+        Markup.callbackButton(`Short${state[ctx.from!.id].selectedDirection === false ? ' ✅' : ''}`, 'short'),   
+      ], { columns: 2 }));
 
   });
 
+  bot.action(['short'], (ctx: any) => {
+    state[ctx.from!.id].selectedDirection = false;
 
-
-
-
-
-
-  bot.command("help", (ctx: any) => {
+    ctx.editMessageReplyMarkup(Markup.inlineKeyboard([
+        Markup.callbackButton(`Long${state[ctx.from!.id].selectedDirection === true ? ' ✅' : ''}`, 'long'),
+        Markup.callbackButton(`Short${state[ctx.from!.id].selectedDirection === false ? ' ✅' : ''}`, 'short'),    
+      ], { columns: 2 }));
 
   });
+// /^\d+.*x$/
+  bot.action(/^-?\d+(\.\d+)?$/, (ctx: any) => {
+    
+    const leverage = parseInt(ctx.match[0], 10);
+    state[ctx.from!.id].leverage = leverage;
+    console.log("your leverage is :", leverage);
 
-
-
-
-  bot.action(/.+/, (ctx: any) => {
-    let session = ctx.session as SessionData;
-    let selectedButtons = session.selectedButtons || [];
-    let selectedLeverage = session.selectedButtons || [];
-    const button = ctx.match[0];
-    const index = selectedButtons.indexOf(button);
-
-    if (index === -1) {
-      selectedButtons.push(button);
-    } else {
-      selectedButtons.splice(index, 1);
-    }
-
-    session.selectedButtons = selectedButtons;
-
-    ctx.editMessageReplyMarkup(
-      Markup.inlineKeyboard([
-        Markup.callbackButton(`Red${selectedButtons.includes('red') ? ' ✅' : ''}`, 'red'),
-        Markup.callbackButton(`Green${selectedButtons.includes('green') ? ' ✅' : ''}`, 'green'),
-        Markup.callbackButton(`Blue${selectedButtons.includes('blue') ? ' ✅' : ''}`, 'blue'),
-        Markup.callbackButton(`Yellow${selectedButtons.includes('yellow') ? ' ✅' : ''}`, 'yellow'),
-        Markup.callbackButton(`Orange${selectedButtons.includes('orange') ? ' ✅' : ''}`, 'orange'),
-        Markup.callbackButton(`Purple${selectedButtons.includes('purple') ? ' ✅' : ''}`, 'purple')
-      ], { columns: 2 })
-    );
+    ctx.editMessageReplyMarkup(Markup.inlineKeyboard(
+      leverages.map((level) => {
+        return Markup.callbackButton(`${level}x${state[ctx.from!.id].leverage === level ? ' ✅' : ''}`, `${level}`);
+      }), { columns: 2 }));
   });
-
-  bot.command('values', (ctx: any) => {
-    let session = ctx.session as SessionData;
-    const selectedButtons = session.selectedButtons || [];
-    if (selectedButtons.length > 0) {
-      ctx.reply(`You have selected: ${selectedButtons.join(', ')}`);
-    } else {
-      ctx.reply('You have not selected any buttons yet.');
-    }
-  });
-
-
-
-
-
-
-
-
-
-
-
-
-  bot.command('old', (ctx: any) => ctx.reply('Hello'));
 
   bot.command("orders", async (ctx: any) => {
     console.log("Fetching orders")
@@ -181,23 +209,6 @@ export const tgWrapper = () => {
 
       await closeOrder(orderId)
     }
-  })
-
-
-  bot.command("close", async (ctx: any) => {
-    try {
-      /**
-       * @todo close order
-       * display all open orders
-       * select order to close by providing its id
-       * close order and notify user
-       */
-
-      await closeOrder(ctx);
-    } catch (error) {
-      console.error(error);
-      ctx.reply("An error occurred while closing the order.");
-    }
   });
 
   bot.command("pnl", async (ctx: any) => {
@@ -210,122 +221,7 @@ export const tgWrapper = () => {
       console.error(error);
       ctx.reply("An error occurred while getting pnl.");
     }
-  })
-
-  bot.action(/^select_token_(.*)$/, async (ctx: any) => {
-    const symbol = ctx.match[1].split("/")[1];
-    const token = Tokens.find((t) => t.symbol === symbol);
-
-    console.log({ symbol });
-
-    if (token) {
-      const address = token.address;
-
-      const response = await axios.get("https://api.gmx.io/prices");
-      const prices = response.data;
-
-      const tokenPrice = prices[address];
-      const tokenPriceInUsd = ((tokenPrice / 1e18) * Math.pow(10, -12)).toFixed(
-        2
-      );
-
-      // Add token address and tokenPrice to state object
-      state[ctx.from!.id].token = address;
-      state[ctx.from!.id].acceptablePrice = tokenPriceInUsd;
-      state[ctx.from!.id].symbol = symbol;
-
-      console.log(tokenPriceInUsd, "$");
-      ctx.reply(
-        `You selected ${symbol} and its current price on the market is: ${tokenPriceInUsd}$`
-      );
-    } else {
-      ctx.reply("Token not found");
-    }
-
-    ctx.reply(` Long or short?`, longShortMenu);
   });
-
-  bot.action("select_long", (ctx: any) => {
-    state[ctx.from!.id].longShort = true;
-    ctx.reply("You selected long");
-    console.log("Long selected");
-
-    ctx.reply("Please select leverage:", leverageMenu);
-  });
-
-  bot.action("select_short", (ctx: any) => {
-    state[ctx.from!.id].longShort = false;
-    console.log("Short selected");
-
-    ctx.reply("You selected short");
-    ctx.reply("Please select leverage:", leverageMenu);
-  });
-
-  bot.action(/^select_leverage_(.*)$/, (ctx: any) => {
-    const leverage = parseInt(ctx.match[1], 10);
-    state[ctx.from!.id].leverage = leverage;
-    console.log("your leverage is :", leverage);
-
-    ctx.reply("Please enter the order amount:");
-  });
-
-  // const handleText1 = (ctx: any) => {
-  //   const amount = parseFloat(ctx.message.text);
-  //   if (!isNaN(amount)) {
-  //     state[ctx.from!.id].amount = amount;
-  //     const leverage = state[ctx.from!.id].leverage;
-  //     const tokenSymbol = state[ctx.from.id].symbol;
-
-  //     const sizeDelta = amount * leverage!;
-  //     console.log(`The result for a amount: ${amount} and Result: ${sizeDelta}}`);
-
-  //     const message = `Please confirm your order for ${state[ctx.from!.id].longShort ? "Long" : "Short"
-  //       } \n ${leverage} x ${amount} \n, the token is ${tokenSymbol} and the Total amount is : ${sizeDelta}`;
-
-  //     ctx.reply(message, placeCancelOrderButtons);
-  //   }
-  // };
-
-  // const handleText2 = async (ctx: any) => {
-  //   const input = ctx.message.text.trim();
-  //   if (!/^\d+$/.test(input)) {
-  //     return ctx.reply("Invalid input. Please enter a number.");
-  //   }
-
-  //   const index = parseInt(input) - 1;
-  //   if (index < 0 || index >= (await orders).length) {
-  //     return ctx.reply(`Invalid input. Please enter a number between 1 and ${(await orders).length}.`);
-  //   }
-  //   const order = (await orders)[index];
-
-  //   // Reverse the path and set collateralDelta and withdrawETH fields
-  //   const path = order.path.reverse();
-  //   path[1] = config.USDC;
-  //   const collateralDelta = 0;
-  //   const withdrawETH = true;
-
-  //   // Call the createDecreasePosition function to close the position
-  //   const closeOrder = await GmxWrapper.createDecreasePosition(
-  //     path,
-  //     order.indexToken,
-  //     collateralDelta,
-  //     order.sizeDelta,
-  //     order.isLong,
-  //     config.RECEIVER_ADDRESS,
-  //     order.acceptablePrice,
-  //     order.minOut,
-  //     order.executionFee,
-  //     withdrawETH,
-  //     order.callbackTarget
-  //   );
-
-  //   // Send a reply message to confirm the position has been closed
-  //   await ctx.reply(`Position for ${order.path.join("-")} has been closed.`);
-  // };
-
-  // bot.on("text", handleText1);
-
-  // bot.on("text", handleText2);
 
   bot.action("cancel_order", (ctx: any) => {
     // state[ctx.from!.id] = {};
