@@ -103,7 +103,6 @@ export const tgWrapper = () => {
             console.log("Token not found");
           }
         } 
-
         
       } catch (error) {
         console.error(error);
@@ -153,7 +152,6 @@ export const tgWrapper = () => {
         Markup.callbackButton(`Long${state[ctx.from!.id].selectedDirection === true ? ' ✅' : ''}`, 'long'),
         Markup.callbackButton(`Short${state[ctx.from!.id].selectedDirection === false ? ' ✅' : ''}`, 'short'),    
       ], { columns: 2 }));
-
   });
 
   bot.action(/^-?\d+(\.\d+)?$/, (ctx:any) => {
@@ -229,8 +227,6 @@ export const tgWrapper = () => {
     }
 
   })
-
-
   /**
    * handles closing open orders
    */
@@ -264,9 +260,7 @@ export const tgWrapper = () => {
       tokenMenu
     );
   });
-
 }
-
 // function for placing an order
 export const placeOrder = async (ctx: any, message: any) => {
   const { token, selectedDirection, leverage, amount, acceptablePrice, symbol } =
@@ -356,7 +350,6 @@ export const closeOrder = async (orderId: string) => {
   }
 
 }
-
 const getOrders = async () => {
   try {
     return await Order.find({ isClosed: false }, "_id isLong amountIn").lean()
