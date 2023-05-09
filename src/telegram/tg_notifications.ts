@@ -21,7 +21,7 @@ export const sendNotification = async (message: any, chatId: string) => {
 export const orderPlacedMessage = (
   token: any,
   txHash: any,
-  longShort: any,
+  selectedDirection: any,
   leverage: any,
   amount: any,
   acceptablePrice: any,
@@ -32,7 +32,7 @@ export const orderPlacedMessage = (
   const explorer = "https://arbiscan.io/";
   let message = "🎉🎉🎉 You have successfully placed an Order 👏👏👏";
   message += `\n\nSymbol: <b>${symbol}</b>`;
-  message += `\nWhich is a: <b> ${longShort ? "Long" : "Short"}</b>`;
+  message += `\nWhich is a: <b> ${selectedDirection ? "Long" : "Short"}</b>`;
   message += `\nwith the leverage of: <b>${leverage}x</b> `;
   message += `\nthe amount is: <b> ${amount}$</b>,`;
   message += `\nthe total amount is <b>${sizeDelta}</b> `;

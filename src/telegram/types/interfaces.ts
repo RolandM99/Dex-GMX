@@ -9,4 +9,5 @@ export interface UserState {
     acceptablePrice?: any;
     userId?: string;
     selectedDirection?: boolean;
+    selectedButtonText?: string;
   }

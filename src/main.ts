@@ -1,6 +1,6 @@
-import { tgWrapper } from "./telegram/tg_bot";
+import { placeOrder, tgWrapper } from "./telegram/tg_bot";
 
-const main = async () => {
+const main = () => {
     let ctx = {};
     try {
         console.log(`GMX Trading Started... \n 🕒 Time: ${new Date()}`);

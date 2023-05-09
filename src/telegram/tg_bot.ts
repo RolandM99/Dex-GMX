@@ -2,7 +2,7 @@ const { Telegraf } = require("telegraf");
 import Tokens from "./data";
 import { connectDB } from "../config/db";
 import axios from "axios";
-import { longShortMenu, placeOrderButton, leverageMenu, tokenMenu } from "./constant";
+import { placeOrderButton, tokenMenu } from "./constant";
 import { Order } from "./../models/schema";
 import { utils } from "ethers";
 import { config } from "../config/config";
@@ -16,10 +16,6 @@ import { Extra, Markup, session } from "telegraf";
 connectDB();
 
 require("dotenv").config();
-
-interface SessionData {
-  selectedTokens: string[];
-}
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
@@ -77,6 +73,7 @@ export const tgWrapper = () => {
           const selectedButtonText = buttons[selectedButtonIndex].text;
           if (!selectedButtonText.endsWith(" ✅")) {
             buttons[selectedButtonIndex].text += " ✅";
+            state[ctx.from!.id].selectedButtonText = symbol;
           } else {
             console.log("already selected");
           }
@@ -101,7 +98,7 @@ export const tgWrapper = () => {
               Math.pow(10, -12)
             ).toFixed(2);
     
-            console.log("Token Price:", tokenPriceInUsd);
+            console.log("Token Price:", tokenPriceInUsd, "and symbol:", symbol);
           } else {
             console.log("Token not found");
           }
@@ -121,9 +118,10 @@ export const tgWrapper = () => {
     ));
 
 
-    ctx.reply('Select leverage :', Extra.markup(
+    ctx.reply('☛ Please Select leverage and, \n☛ Enter the order amount:', Extra.markup(
       Markup.inlineKeyboard([
         Markup.callbackButton("1", "1",),
+        Markup.callbackButton("5", "5"),
         Markup.callbackButton("10", "10"),
         Markup.callbackButton("15", "15",),
         Markup.callbackButton("20", "20",),
@@ -135,7 +133,6 @@ export const tgWrapper = () => {
         Markup.callbackButton("50", "50")],
         { columns: 2 })
     ));
-
   });
 
   
@@ -158,17 +155,53 @@ export const tgWrapper = () => {
       ], { columns: 2 }));
 
   });
-// /^\d+.*x$/
-  bot.action(/^-?\d+(\.\d+)?$/, (ctx: any) => {
-    
+
+  bot.action(/^-?\d+(\.\d+)?$/, (ctx:any) => {
     const leverage = parseInt(ctx.match[0], 10);
     state[ctx.from!.id].leverage = leverage;
-    console.log("your leverage is :", leverage);
+    console.log("Your leverage is:", leverage);
 
     ctx.editMessageReplyMarkup(Markup.inlineKeyboard(
       leverages.map((level) => {
-        return Markup.callbackButton(`${level}x${state[ctx.from!.id].leverage === level ? ' ✅' : ''}`, `${level}`);
-      }), { columns: 2 }));
+        return Markup.callbackButton(`${level}x${state[ctx.from!.id].leverage === level ? ' 🔵' : ''}`, `${level}`);
+      }), { columns: 2 }
+    ));
+  });
+
+  bot.on("text", (ctx: any) => {
+    const amount = parseFloat(ctx.message.text);
+    if (!isNaN(amount)) {
+      state[ctx.from!.id].amount = amount;
+      const leverage = state[ctx.from!.id].leverage;
+      const tokenSymbol = state[ctx.from.id].selectedButtonText;
+  
+      const sizeDelta = amount * leverage!;
+      console.log(`The result for a amount: ${amount} and Result: ${sizeDelta}}`);
+  
+      const message = `Please confirm your order for ${
+        state[ctx.from!.id].selectedDirection ? "Long" : "Short"
+      } \n ${leverage} x ${amount} \n, the token is ${tokenSymbol} and the Total amount is : ${sizeDelta}`;
+  
+      ctx.reply(message, placeOrderButton);
+    }
+  });
+
+  bot.action("place_order", async (ctx: any) => {
+    const amount = state[ctx.from.id].amount;
+    const leverage = state[ctx.from.id].leverage!;
+    const tokenSymbol = state[ctx.from.id].selectedButtonText;
+
+    if (typeof amount === "undefined") {
+      ctx.reply("Please enter an amount before placing an order");
+      return;
+    }
+    const sizeDelta = amount * leverage;
+    const message = `Order placed for ${state[ctx.from!.id].selectedDirection ? "Long" : "Short"
+      } ${leverage}x ${amount}  the token is ${tokenSymbol} and the total amount is: ${sizeDelta}`;
+
+    console.log(`The result for amount: ${amount} and Result: ${sizeDelta}`);
+
+    await placeOrder(ctx, message);
   });
 
   bot.command("orders", async (ctx: any) => {
@@ -232,32 +265,13 @@ export const tgWrapper = () => {
     );
   });
 
-  bot.action("place_order", async (ctx: any) => {
-    const amount = state[ctx.from.id].amount;
-    const leverage = state[ctx.from.id].leverage!;
-    const tokenSymbol = state[ctx.from.id].symbol;
-
-    if (typeof amount === "undefined") {
-      ctx.reply("Please enter an amount before placing an order");
-      return;
-    }
-    const sizeDelta = amount * leverage;
-    const message = `Order placed for ${state[ctx.from!.id].longShort ? "Long" : "Short"
-      } ${leverage}x ${amount}  the token is ${tokenSymbol} and the total amount is: ${sizeDelta}`;
-
-    console.log(`The result for amount: ${amount} and Result: ${sizeDelta}`);
-
-    await placeOrder(ctx, message);
-
-    // ctx.reply(message);
-  });
 }
 
 // function for placing an order
 export const placeOrder = async (ctx: any, message: any) => {
-  const { token, longShort, leverage, amount, acceptablePrice, symbol } =
+  const { token, selectedDirection, leverage, amount, acceptablePrice, symbol } =
     state[ctx?.from?.id ?? ""] || {};
-  if (!ctx || !ctx.from || !token || !longShort || !leverage || !amount) {
+  if (!ctx || !ctx.from || !token || !selectedDirection || !leverage || !amount) {
     return;
   }
 
@@ -267,7 +281,7 @@ export const placeOrder = async (ctx: any, message: any) => {
   const _amountIn = utils.parseUnits(amount.toString(), 6);
   const _minOut = 0;
   const _sizeDelta = utils.parseUnits((amount * leverage).toString());
-  const _isLong = longShort;
+  const _isLong = selectedDirection;
   const _acceptablePrice = utils.parseUnits(acceptablePrice.toString());
   const _executionFee = "180000000000000";
   const _referralCode =
@@ -297,7 +311,7 @@ export const placeOrder = async (ctx: any, message: any) => {
   const orderMessage = orderPlacedMessage(
     _indexToken,
     hash,
-    longShort,
+    selectedDirection,
     leverage,
     amount,
     acceptablePrice,
@@ -324,11 +338,11 @@ export const placeOrder = async (ctx: any, message: any) => {
 
     // console.log(data);
   }
-  console.log(token, longShort, _sizeDelta);
+  console.log(token, selectedDirection, _sizeDelta);
 
   // Send a message to the user
   console.log(
-    `Placing order for ${longShort} ${leverage}x ${_sizeDelta} ${token}...`
+    `Placing order for ${selectedDirection} ${leverage}x ${_sizeDelta} ${token}...`
   );
 };
 
@@ -351,24 +365,3 @@ const getOrders = async () => {
   }
 }
 
-
-const createOrder = (ctx: any) => {
-  try {
-    const amount = parseFloat(ctx.message.text);
-    if (!isNaN(amount)) {
-      state[ctx.from!.id].amount = amount;
-      const leverage = state[ctx.from!.id].leverage;
-      const tokenSymbol = state[ctx.from.id].symbol;
-
-      const sizeDelta = amount * leverage!;
-      console.log(`The result for a amount: ${amount} and Result: ${sizeDelta}}`);
-
-      const message = `Please confirm your order for ${state[ctx.from!.id].longShort ? "Long" : "Short"
-        } \n ${leverage} x ${amount} \n, the token is ${tokenSymbol} and the Total amount is : ${sizeDelta}`;
-
-      ctx.reply(message, placeOrderButton);
-    }
-  } catch (error) {
-    console.log("error creating order ", error)
-  }
-}
