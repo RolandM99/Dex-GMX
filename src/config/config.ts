@@ -14,12 +14,10 @@ export const config = {
 
     MONGO_DB_URL: process.env.MONGO_DB_URL!,
 
-    USDC: process.env.USDC!,
+    USDC: "0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8",
 
     RECEIVER_ADDRESS: "0x23055e68dafc3670b20651bd0b2e0bcd46977b22",
 
     WETH: "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
-
-    CHAT_ID: ["1069843486"]
 
 }

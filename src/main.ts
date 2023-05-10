@@ -1,9 +1,10 @@
-import { gmxWrapperTrader } from "./core/gmxTrade";
+import { placeOrder, tgWrapper } from "./telegram/tg_bot";
 
-const main = async () => {
+const main = () => {
+    let ctx = {};
     try {
-        console.log("Starting...");
-       await gmxWrapperTrader();
+        console.log(`GMX Trading Started... \n 🕒 Time: ${new Date()}`);
+       tgWrapper()
     } catch (error) {
         console.log("Error: ", error)
     }
