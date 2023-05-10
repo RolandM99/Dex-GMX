@@ -34,9 +34,9 @@ export const orderPlacedMessage = (
   message += `\n\nSymbol: <b>${symbol}</b>`;
   message += `\nWhich is a: <b> ${selectedDirection ? "Long" : "Short"}</b>`;
   message += `\nwith the leverage of: <b>${leverage}x</b> `;
-  message += `\nthe amount is: <b> ${amount}$</b>,`;
-  message += `\nthe total amount is <b>${sizeDelta}</b> `;
-  message += `\nand the acceptable Price: <b>$${acceptablePrice}</b>  `;
+  message += `\nthe amount is: <b>$ ${amount}</b>,`;
+  message += `\nthe total amount is <b>$ ${sizeDelta}</b> `;
+  message += `\nand the acceptable Price: <b>$ ${acceptablePrice}</b>  `;
   message += `\n\n <b>Index Token</b>`;
   message += `\n<a href="${explorer}/token/${token}">${token}</a>`;
   message += "\n\n <b>Transaction Hash</b> ";

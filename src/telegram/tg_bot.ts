@@ -19,12 +19,7 @@ require("dotenv").config();
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-
-const tokens = Tokens.map((token) => `USDC/${token.symbol}`);
-
 const leverages = [1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
-const numRows = 2;
-const numCols = 2;
 
 const state: Record<number, UserState> = {};
 bot.use(session())
@@ -97,6 +92,10 @@ export const tgWrapper = () => {
               (tokenPrice / 1e18) *
               Math.pow(10, -12)
             ).toFixed(2);
+
+            state[ctx.from!.id].token = address;
+            state[ctx.from!.id].acceptablePrice = tokenPriceInUsd;
+            state[ctx.from!.id].symbol = symbol;
     
             console.log("Token Price:", tokenPriceInUsd, "and symbol:", symbol);
           } else {
@@ -193,9 +192,9 @@ export const tgWrapper = () => {
       ctx.reply("Please enter an amount before placing an order");
       return;
     }
-    const sizeDelta = amount * leverage;
-    const message = `Order placed for ${state[ctx.from!.id].selectedDirection ? "Long" : "Short"
-      } ${leverage}x ${amount}  the token is ${tokenSymbol} and the total amount is: ${sizeDelta}`;
+    const sizeDelta = amount * leverage!;
+    const message = `Order placed for ${state[ctx.from!.id].selectedDirection ? "Long" : "Short"}
+    ${leverage}x ${amount}  the token is ${tokenSymbol} and the total amount is: ${sizeDelta}`;
 
     console.log(`The result for amount: ${amount} and Result: ${sizeDelta}`);
 
@@ -225,7 +224,6 @@ export const tgWrapper = () => {
     } else {
       ctx.reply(`Error fetching orders \n\n Error: ${orders}`)
     }
-
   })
   /**
    * handles closing open orders
@@ -252,23 +250,19 @@ export const tgWrapper = () => {
     }
   });
 
-  bot.action("cancel_order", (ctx: any) => {
-    // state[ctx.from!.id] = {};
-    ctx.reply("Order cancelled.");
-    ctx.reply(
-      "🚀Welcome again to NgGmxBot!🚀 \n A bot that facilitate trading on the GMX Dex platform on easy to use way  \n\n Please select a token:",
-      tokenMenu
-    );
-  });
 }
 // function for placing an order
-export const placeOrder = async (ctx: any, message: any) => {
-  const { token, selectedDirection, leverage, amount, acceptablePrice, symbol } =
-    state[ctx?.from?.id ?? ""] || {};
-  if (!ctx || !ctx.from || !token || !selectedDirection || !leverage || !amount) {
-    return;
-  }
 
+export const placeOrder = async (ctx: any, message: any) => {
+  
+  const { token, selectedDirection, amount, leverage, acceptablePrice, symbol } = state[ctx?.from?.id ?? ""] || {};
+  console.log("state", state[ctx?.from?.id ?? ""])
+
+    if (!ctx || !ctx.from || !token || !amount || !leverage || selectedDirection === undefined) {
+      // Handle the error condition, such as showing an error message or returning from the function
+      console.error("Error: 'amount'", amount , 'leverage' , leverage , 'token' , token);
+      return;
+    }
   // Compute the order amount based on the selected leverage
   const _path = [config.USDC, token];
   const _indexToken = config.USDC;
@@ -329,8 +323,6 @@ export const placeOrder = async (ctx: any, message: any) => {
     });
 
     const data = await orderDetails.save();
-
-    // console.log(data);
   }
   console.log(token, selectedDirection, _sizeDelta);
 
@@ -348,7 +340,6 @@ export const closeOrder = async (orderId: string) => {
   } catch (error) {
     console.log(error);
   }
-
 }
 const getOrders = async () => {
   try {
