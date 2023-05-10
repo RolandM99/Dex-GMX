@@ -200,31 +200,6 @@ export const tgWrapper = () => {
 
     await placeOrder(ctx, message);
   });
-
-  bot.command("orders", async (ctx: any) => {
-    console.log("Fetching orders")
-    const orders = await getOrders()
-
-    if (orders) {
-      if (orders.length > 0) {
-
-        let message = "Open orders: \n"
-
-        for (let i = 0; i < orders.length; i++) {
-          const order = orders[i];
-          const data = `\n /CLS${order._id} ${order.amountIn} ${order.isLong ? "Long" : "Short"}`
-          message = message + data
-        }
-
-        ctx.reply(message)
-
-      } else {
-        ctx.reply(`No open orders found`)
-      }
-    } else {
-      ctx.reply(`Error fetching orders \n\n Error: ${orders}`)
-    }
-  })
   /**
    * handles closing open orders
    */
@@ -249,8 +224,37 @@ export const tgWrapper = () => {
       ctx.reply("An error occurred while getting pnl.");
     }
   });
-
 }
+
+bot.command("orders", async (ctx: any) => {
+  
+  const orders = await getOrders()
+  console.log("Fetching orders")
+  if (orders) {
+    if (orders.length > 0) {
+
+      let message = "Open orders: \n"
+
+      // for (let i = 0; i < orders.length; i++) {
+      //   const order = orders[i];
+      //   const data = `\n/CLS${order._id} ${order.amountIn} ${order.isLong ? "Long" : "Short"}`
+      //   message = message + data
+      // }
+      const orderList = orders.map(
+        (order, index) => `${index + 1} ./CLS${order._id} 🔻🔻 Tokens: ${order.path.join("-") }`
+      );
+      const data = orderList.join("\n\n");
+      message = message + data
+
+      ctx.reply(message)
+
+    } else {
+      ctx.reply(`No open orders found`)
+    }
+  } else {
+    ctx.reply(`Error fetching orders \n\n Error: ${orders}`)
+  }
+})
 // function for placing an order
 
 export const placeOrder = async (ctx: any, message: any) => {
@@ -343,7 +347,7 @@ export const closeOrder = async (orderId: string) => {
 }
 const getOrders = async () => {
   try {
-    return await Order.find({ isClosed: false }, "_id isLong amountIn").lean()
+    return await Order.find({ isClosed: false }, "_id isLong path index amountIn").lean()
   } catch (error) {
     console.log("error fetching orders ", error)
   }
