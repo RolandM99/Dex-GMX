@@ -158,6 +158,18 @@ export const tgWrapper = () => {
 
   });
 
+  bot.command("pnl", async (ctx:any) => {
+    try {
+      state[ctx.from!.id] = {};
+      ctx.reply("Initiating getting pnl...");
+      await getPnl(ctx);
+      ctx.reply("Getting profit and loss of your orders");
+    } catch (error) {
+      console.error(error);
+      ctx.reply("An error occurred while getting pnl.");
+    }
+  })
+
  
 
   bot.action(['long'], (ctx: any) => {
