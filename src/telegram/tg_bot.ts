@@ -133,7 +133,33 @@ export const tgWrapper = () => {
     ));
   });
 
+  bot.command("orders", async (ctx: any) => {
   
+    const orders = await getOrders()
+    console.log("Fetching orders")
+    if (orders) {
+      if (orders.length > 0) {
+  
+        let message = "Open orders: \n"
+        const orderList = orders.map(
+          (order, index) => `${index + 1}. /CLS${order._id} 🔻🔻 Tokens: ${order.path.join("-") }`
+        );
+        const data = orderList.join("\n\n");
+        message = message + data
+  
+        ctx.reply(message)
+  
+      } else {
+        ctx.reply(`No open orders found`)
+      }
+    } else {
+      ctx.reply(`Error fetching orders \n\n Error: ${orders}`)
+    }
+
+  });
+
+ 
+
   bot.action(['long'], (ctx: any) => {
     state[ctx.from!.id].selectedDirection = true;
   
@@ -165,8 +191,15 @@ export const tgWrapper = () => {
     ));
   });
 
-  bot.on("text", (ctx: any) => {
+  bot.on("text", async (ctx: any) => {
+    let text: string = ctx.message?.text ? ctx.message?.text : ctx.update.message.text || "";
     const amount = parseFloat(ctx.message.text);
+
+    if (text.startsWith("/CLS")) {
+      const orderId = text.split("/CLS")[1];
+      await closeOrder(orderId, ctx)
+      ctx.reply(`Order ${orderId} closed successfully`)
+    }
     if (!isNaN(amount)) {
       state[ctx.from!.id].amount = amount;
       const leverage = state[ctx.from!.id].leverage;
@@ -182,6 +215,11 @@ export const tgWrapper = () => {
       ctx.reply(message, placeOrderButton);
     }
   });
+
+  // bot.on("text", (ctx: any) => {
+    
+    
+  // });
 
   bot.action("place_order", async (ctx: any) => {
     const amount = state[ctx.from.id].amount;
@@ -203,61 +241,10 @@ export const tgWrapper = () => {
   /**
    * handles closing open orders
    */
-  bot.on("text", async (ctx: any) => {
-    let text: string = ctx.message?.text ? ctx.message?.text : ctx.update.message.text || "";
 
-    if (text.startsWith("/CLS")) {
-      const orderId = text.split("/CLS")[1];
-
-      await closeOrder(orderId)
-    }
-  });
-
-  bot.command("pnl", async (ctx: any) => {
-    try {
-      state[ctx.from!.id] = {};
-      ctx.reply("Initiating getting pnl...");
-      await getPnl(ctx);
-      ctx.reply("Getting profit and loss of your orders");
-    } catch (error) {
-      console.error(error);
-      ctx.reply("An error occurred while getting pnl.");
-    }
-  });
-}
-
-bot.command("orders", async (ctx: any) => {
-  
-  const orders = await getOrders()
-  console.log("Fetching orders")
-  if (orders) {
-    if (orders.length > 0) {
-
-      let message = "Open orders: \n"
-
-      // for (let i = 0; i < orders.length; i++) {
-      //   const order = orders[i];
-      //   const data = `\n/CLS${order._id} ${order.amountIn} ${order.isLong ? "Long" : "Short"}`
-      //   message = message + data
-      // }
-      const orderList = orders.map(
-        (order, index) => `${index + 1} ./CLS${order._id} 🔻🔻 Tokens: ${order.path.join("-") }`
-      );
-      const data = orderList.join("\n\n");
-      message = message + data
-
-      ctx.reply(message)
-
-    } else {
-      ctx.reply(`No open orders found`)
-    }
-  } else {
-    ctx.reply(`Error fetching orders \n\n Error: ${orders}`)
-  }
-})
 // function for placing an order
 
-export const placeOrder = async (ctx: any, message: any) => {
+const placeOrder = async (ctx: any, message: any) => {
   
   const { token, selectedDirection, amount, leverage, acceptablePrice, symbol } = state[ctx?.from?.id ?? ""] || {};
   console.log("state", state[ctx?.from?.id ?? ""])
@@ -337,19 +324,50 @@ export const placeOrder = async (ctx: any, message: any) => {
 };
 
 // Function for closing or cancelling an order
-export const closeOrder = async (orderId: string) => {
+const closeOrder = async (orderId: string, ctx:any) => {
   try {
+
     console.log(`Closing order id ${orderId}...`);
-    await Order.findByIdAndUpdate(orderId, { isClosed: true });
+    const order = await Order.findByIdAndUpdate(orderId, { isClosed: true });
+ if (!order) {
+      return ctx.reply("Order not found");
+    }
+    // Reverse the path and set collateralDelta and withdrawETH fields
+  const path = order.path.reverse();
+  path[1] = config.USDC;
+  const collateralDelta = 0;
+  const withdrawETH = true;
+
+  console.log("Path is: ", path);
+
+  // Call the createDecreasePosition function to close the position
+  const closeOrder = await GmxWrapper.createDecreasePosition(
+    path,
+    order.indexToken,
+    collateralDelta,
+    order.sizeDelta,
+    order.isLong,
+    config.RECEIVER_ADDRESS,
+    order.acceptablePrice,
+    order.minOut,
+    order.executionFee,
+    withdrawETH,
+    order.callbackTarget
+  );
+
   } catch (error) {
     console.log(error);
   }
 }
+
 const getOrders = async () => {
   try {
-    return await Order.find({ isClosed: false }, "_id isLong path index amountIn").lean()
+    
+    const order = await Order.find({ isClosed: false }, "_id isLong path index amountIn").lean()
+    return order
   } catch (error) {
     console.log("error fetching orders ", error)
   }
 }
 
+}

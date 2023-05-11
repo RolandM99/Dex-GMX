@@ -1,4 +1,4 @@
-import { placeOrder, tgWrapper } from "./telegram/tg_bot";
+import { tgWrapper } from "./telegram/tg_bot";
 
 const main = () => {
     let ctx = {};
