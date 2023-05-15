@@ -122,9 +122,7 @@ Feel free to check the [issues page](../../issues/).
 
 ## 🙏 Acknowledgments <a name="acknowledgements"></a>
 
-> Give credit to everyone who inspired your codebase.
-- Our special thanks goes straightly to [Jay](https://github.com/lelerukjaymoh), a blockchain developer.
-- Thanks to [NGENI Labs](https://www.linkedin.com/company/ngenilabs/),a Kenya and East Africa's first pure-play and largest Blockchain & Web3 Tech Developer Studio, with an 80-plus-person team.
+- Thanks to [NGENI Labs](https://www.linkedin.com/company/ngenilabs/),a Kenya and East Africa's first pure-play and largest Blockchain & Web3 Tech Developer Studio.
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
