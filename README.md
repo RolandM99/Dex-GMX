@@ -24,7 +24,7 @@
 # 📖 NG GMX BOT <a name="about-project"></a>
 
 
-**NG GMX BOT** is a fully-proposed telegram bot that facilitate trading on the GMX platform.
+**GMX BOT** is a fully-proposed telegram bot that facilitates trading on the GMX platform.
 
 ## 🛠 Built With <a name="built-with"></a>
 
