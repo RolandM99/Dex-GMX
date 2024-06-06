@@ -84,21 +84,11 @@ To run the project, execute the following command:
 
 <!-- AUTHORS -->
 
-## 👥 Authors <a name="authors"></a>
-
-> Mention all of the collaborators of this project.
-
-👤 **Author1**
+👤 **Author**
 
 - GitHub: [RolandM99](https://github.com/RolandM99)
 - LinkedIn: [Roland N. Mweze](https://www.linkedin.com/in/roland-mweze/)
 - Twitter: [ManfulMwez](https://twitter.com/ManfulMwez)
-
-👤 **Author2**
-
-- GitHub: [Anicet Murhula](https://github.com/AnicetFantomas)
-- LinkedIn: [Anicet Murhula](https://www.linkedin.com/in/anicet-murhula-13a1b0220/)
-
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
@@ -118,13 +108,6 @@ Feel free to check the [issues page](../../issues/).
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
-<!-- ACKNOWLEDGEMENTS -->
-
-## 🙏 Acknowledgments <a name="acknowledgements"></a>
-
-- Thanks to [NGENI Labs](https://www.linkedin.com/company/ngenilabs/),a Kenya and East Africa's first pure-play and largest Blockchain & Web3 Tech Developer Studio.
-
-<p align="right">(<a href="#readme-top">back to top</a>)</p>
 
 <!-- LICENSE -->
 
