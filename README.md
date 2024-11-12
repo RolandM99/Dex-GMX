@@ -63,7 +63,7 @@ Clone this repository to your desired folder:
 
 ```sh
   cd my-folder
-https://github.com/devngeni/Dex-GMX.git
+https://github.com/rolandm99/Dex-GMX.git
 ```
 
 ### Install
