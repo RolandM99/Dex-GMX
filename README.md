@@ -43,7 +43,9 @@
 
 ### Key Features <a name="key-features"></a>
 
-- **Place and Close an order**
+- **Place an order**
+- **Choose long or short**
+- **Close an order**
 - **Get the PNL**
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
