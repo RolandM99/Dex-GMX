@@ -21,10 +21,10 @@
 
 <!-- PROJECT DESCRIPTION -->
 
-# 📖 NG GMX BOT <a name="about-project"></a>
+# 📖 GMX BOT <a name="about-project"></a>
 
 
-**GMX BOT** is a fully-proposed telegram bot that facilitates trading on the GMX platform.
+**GMX BOT** is a fully proposed Telegram bot that facilitates trading on the GMX platform.
 
 ## 🛠 Built With <a name="built-with"></a>
 
