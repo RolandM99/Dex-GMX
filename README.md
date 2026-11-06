@@ -24,11 +24,11 @@
 # 📖 GMX BOT <a name="about-project"></a>
 
 
-**GMX BOT** is a fully proposed Telegram bot that facilitates trading on the GMX platform.
+**GMX BOT** is a proposed Telegram bot that facilitates trading on the GMX platform.
 
 ## 🛠 Built With <a name="built-with"></a>
 
-### Tech Stack <a name="tech-stack"></a>
+### Tech Stacks <a name="tech-stack"></a>
 
 <details>
   <summary>Technologies</summary>
@@ -59,11 +59,11 @@ To get a local copy and run this project, follow the steps below:
 
 ### Setup
 
-Clone this repository to your desired folder:
+Clone this repository into your desired folder:
 
 ```sh
   cd my-folder
-git@github.com:RolandM99/Dex-GMX.git
+git clone git@github.com:RolandM99/Dex-GMX.git
 ```
 
 ### Install
